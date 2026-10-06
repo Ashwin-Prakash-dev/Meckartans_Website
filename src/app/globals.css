@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* Generated semantic tokens (--ds-*) -> Tailwind utilities. Change colours/fonts in tokens.json, not here. */
+@theme inline {
+  --color-background: var(--ds-color-background);
+  --color-foreground: var(--ds-color-foreground);
+  --color-card: var(--ds-color-card);
+  --color-card-foreground: var(--ds-color-card-foreground);
+  --color-muted: var(--ds-color-muted);
+  --color-muted-foreground: var(--ds-color-muted-foreground);
+  --color-border: var(--ds-color-border);
+  --color-accent: var(--ds-color-accent);
+  --color-on-accent: var(--ds-color-on-accent);
+  --color-accent-dim: var(--ds-color-accent-dim);
+  --color-ring: var(--ds-color-ring);
+  --font-display: var(--ds-font-display);
+  --font-sans: var(--ds-font-sans);
+  --font-mono: var(--ds-font-mono);
+  --radius-base: var(--ds-radius-base);
+  --radius-card: var(--ds-radius-card);
+  --ease-out-expo: var(--ds-motion-ease-out);
+  --animate-marquee: marquee var(--duration) linear infinite;
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(-100% - var(--gap))); }
+  }
+}
+
+html { background: var(--ds-color-background); color-scheme: dark; }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+body {
+  margin: 0;
+  background: var(--ds-color-background);
+  color: var(--ds-color-foreground);
+  font-family: var(--ds-font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--ds-color-accent); color: var(--ds-color-on-accent); }
+:focus-visible { outline: 2px solid var(--ds-color-ring); outline-offset: 3px; }
+img, video { display: block; }
+
+/* Archivo is variable: the display voice uses its expanded width. Only font-stretch here (an unlayered
+   letter-spacing would override Tailwind's tracking-* utilities). */
+.font-display { font-stretch: 125%; }
+
+/* Team trim (from the jersey): diagonal red + white racing stripes. */
+.stripes {
+  background: repeating-linear-gradient(
+    -60deg,
+    var(--ds-color-accent) 0 10px,
+    transparent 10px 16px,
+    var(--ds-color-foreground) 16px 19px,
+    transparent 19px 34px
+  );
+}
+
+/* Faint technical-drawing grid. */
+.bg-blueprint {
+  background-image:
+    linear-gradient(to right, var(--ds-color-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ds-color-border) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 15%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 15%, transparent 75%);
+  opacity: 0.5;
+}
+
+/* Photo grade for full-bleed backgrounds: dim + darker centre + fade into the page at the bottom. */
+.photo-scrim {
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 52%, color-mix(in srgb, var(--ds-color-background) 50%, transparent), transparent 80%),
+    linear-gradient(to bottom, color-mix(in srgb, var(--ds-color-background) 55%, transparent) 0%, transparent 30%, transparent 55%, var(--ds-color-background) 100%);
+}
+
+@keyframes scrollcue { 0% { transform: translateY(-100%); } 100% { transform: translateY(200%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.08); } }
+@keyframes slidefill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ---- Server-rendering addition (not needed in the Vite build, which rendered client-side only) ----
+   Elements animated on load / on scroll start hidden *before first paint* so the server HTML doesn't flash
+   before GSAP takes over (GSAP's documented FOUC pattern). The `js` class is set by an inline script in
+   layout.tsx; it's removed again after 4s if the app never hydrates, so content can't stay hidden. */
+.js .fouc { visibility: hidden; }
+.js .reveal { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .js .fouc { visibility: visible; }
+  .js .reveal { opacity: 1; }
+}

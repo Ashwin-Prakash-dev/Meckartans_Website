@@ -1,0 +1,54 @@
+/* Design Tokens - Auto-generated */
+/* Do not edit directly - modify tokens.json instead */
+
+/* === PRIMITIVES === */
+:root {
+  --primitive-color-black: #08080A;
+  --primitive-color-ink: #111114;
+  --primitive-color-graphite: #1A1A1E;
+  --primitive-color-line: #26262B;
+  --primitive-color-steel: #8C8F98;
+  --primitive-color-bone: #F2F2F0;
+  --primitive-color-red: #E5202E;
+  --primitive-color-red-dim: #9E1620;
+  --primitive-font-display: var(--font-archivo), 'Arial Black', system-ui, sans-serif;
+  --primitive-font-body: var(--font-archivo), system-ui, sans-serif;
+  --primitive-font-mono: var(--font-roboto-mono), ui-monospace, monospace;
+  --primitive-radius-sm: 2px;
+  --primitive-radius-md: 4px;
+  --primitive-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --primitive-ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --primitive-duration-fast: 200ms;
+  --primitive-duration-base: 450ms;
+  --primitive-duration-slow: 900ms;
+}
+
+/* === SEMANTIC === */
+:root {
+  --ds-color-background: #08080A;
+  --ds-color-foreground: #F2F2F0;
+  --ds-color-card: #111114;
+  --ds-color-card-foreground: #F2F2F0;
+  --ds-color-muted: #1A1A1E;
+  --ds-color-muted-foreground: #8C8F98;
+  --ds-color-border: #26262B;
+  --ds-color-accent: #E5202E;
+  --ds-color-on-accent: #F2F2F0;
+  --ds-color-accent-dim: #9E1620;
+  --ds-color-ring: #F2F2F0;
+  --ds-font-display: var(--font-archivo), 'Arial Black', system-ui, sans-serif;
+  --ds-font-sans: var(--font-archivo), system-ui, sans-serif;
+  --ds-font-mono: var(--font-roboto-mono), ui-monospace, monospace;
+  --ds-radius-base: 2px;
+  --ds-radius-card: 4px;
+  --ds-motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ds-motion-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ds-motion-dur-fast: 200ms;
+  --ds-motion-dur-base: 450ms;
+  --ds-motion-dur-slow: 900ms;
+}
+
+/* === COMPONENTS === */
+:root {
+
+}
