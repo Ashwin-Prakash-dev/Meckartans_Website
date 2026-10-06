@@ -8,7 +8,7 @@ import { Menu, X } from "lucide-react"
 import { NAV, SITE } from "@/content/site"
 import { useLenis } from "@/components/smooth-scroll"
 import { EASE, gsap, ScrollTrigger, useGSAP } from "@/lib/motion"
-import { cn } from "@/lib/utils"
+import { cn, SHELL } from "@/lib/utils"
 
 /** Scrolls to the footer contact block from any page. */
 export function useGoContact() {
@@ -73,7 +73,7 @@ export function Nav() {
         )}
       >
         {!solid && <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-background/80 to-transparent" aria-hidden />}
-        <div className="relative mx-auto flex h-[72px] max-w-[1500px] items-center justify-between gap-6 px-5 sm:px-8">
+        <div className={cn(SHELL, "relative flex h-[72px] items-center justify-between gap-6")}>
           <Link href="/" aria-label={`${SITE.name}, home`} className="shrink-0">
             <img src="/media/brand/logo-light.png" alt={SITE.name} width={605} height={449} className="h-11 w-auto" />
           </Link>

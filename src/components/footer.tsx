@@ -5,6 +5,7 @@ import { CONTACTS, LOCATION, NAV, SITE, SOCIALS } from "@/content/site"
 import { FacebookIcon, InstagramIcon, LinkedinIcon, YoutubeIcon } from "@/components/icons"
 import { CurrentYear } from "@/components/current-year"
 import { Pending } from "@/components/pending"
+import { SHELL } from "@/lib/utils"
 
 export const SOCIAL_LINKS = [
   { label: "Email", href: `mailto:${SITE.email}`, Icon: Mail },
@@ -40,7 +41,7 @@ export function Footer() {
   return (
     <footer id="contact" className="relative overflow-hidden border-t border-border bg-card">
       <div className="stripes absolute right-0 top-0 h-1.5 w-1/3 opacity-90" aria-hidden />
-      <div className="mx-auto grid max-w-[1500px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-12 lg:py-20">
+      <div className={`${SHELL} grid gap-12 py-16 lg:grid-cols-12 lg:py-20`}>
         {/* brand */}
         <div className="lg:col-span-3">
           <img src="/media/brand/logo-light.png" alt={SITE.name} className="h-20 w-auto" />
@@ -109,7 +110,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-border">
-        <div className="mx-auto flex max-w-[1500px] flex-col gap-2 px-5 py-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground sm:flex-row sm:justify-between sm:px-8">
+        <div className={`${SHELL} flex flex-col gap-2 py-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground sm:flex-row sm:justify-between`}>
           <span>© <CurrentYear /> {SITE.name} · {SITE.collegeShort}</span>
           <a href={SOCIALS.college} target="_blank" rel="noreferrer" className="hover:text-foreground">Team page on sctce.ac.in ↗</a>
         </div>

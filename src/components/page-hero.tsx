@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 
 import { EASE, gsap, MOTION_OK, useGSAP } from "@/lib/motion"
-import { cn } from "@/lib/utils"
+import { cn, SHELL } from "@/lib/utils"
 
 type Props = {
   eyebrow: string
@@ -70,11 +70,11 @@ export function PageHero({ eyebrow, title, intro, image, video, objectPosition =
         <div className="photo-scrim absolute inset-0" />
       </div>
 
-      <div className="ph-copy relative mx-auto w-full max-w-[1500px] px-5 pb-16 pt-36 sm:px-8 lg:pb-24">
+      <div className={cn(SHELL, "ph-copy relative pb-16 pt-36 lg:pb-24")}>
         <p className="ph-fade mb-5 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.3em] text-foreground/80">
           <span className="h-px w-10 bg-accent" aria-hidden /> {eyebrow}
         </p>
-        <h1 className="font-display text-[clamp(2.75rem,8vw,7.5rem)] font-black uppercase leading-[0.92] tracking-[-0.01em]">
+        <h1 className="font-display text-[clamp(2.1rem,8vw,7.5rem)] font-black uppercase leading-[0.92] tracking-[-0.01em]">
           {Array.isArray(title)
             ? title.map((t, i) => (
                 <span key={i} className="block overflow-hidden pb-[0.04em]">

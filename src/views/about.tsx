@@ -45,7 +45,7 @@ export default function About() {
           <Container className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <Eyebrow className="reveal">Who we are</Eyebrow>
-              <dl className="reveal mt-8 grid grid-cols-2 gap-6 border-t border-border pt-8 lg:grid-cols-1">
+              <dl className="reveal mt-8 grid grid-cols-1 gap-5 border-t border-border pt-8 md:grid-cols-2 lg:grid-cols-1">
                 {[
                   ["Established", String(SITE.established)],
                   ["College", `${SITE.collegeShort}, ${SITE.city}`],
@@ -54,7 +54,7 @@ export default function About() {
                 ].map(([k, v]) => (
                   <div key={k}>
                     <dt className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{k}</dt>
-                    <dd className="mt-1 font-display text-lg font-extrabold uppercase">{v}</dd>
+                    <dd className="mt-1 font-display text-base font-extrabold uppercase [overflow-wrap:anywhere] sm:text-lg">{v}</dd>
                   </div>
                 ))}
               </dl>
@@ -92,7 +92,7 @@ export default function About() {
 
         <PhotoBand image="/media/hero/band-build.webp">
           <Container>
-            <p className="reveal max-w-4xl font-display text-[clamp(2rem,5vw,4.5rem)] font-black uppercase leading-[0.95]">
+            <p className="reveal max-w-4xl font-display text-[clamp(1.75rem,3.8vw,3.4rem)] font-black uppercase leading-[0.95]">
               From a sketch to a <span className="text-accent">grid slot</span>, everything in-house.
             </p>
           </Container>
@@ -129,28 +129,28 @@ export default function About() {
         {/* socials */}
         <section id="socials" className="border-t border-border bg-card py-24 lg:py-32">
           <Container className="grid gap-12 lg:grid-cols-12">
-            <div className="lg:col-span-5">
+            <div className="min-w-0 lg:col-span-5">
               <Eyebrow className="reveal">Follow the build</Eyebrow>
-              <h2 className="reveal mt-4 font-display text-[clamp(2rem,4.6vw,4.25rem)] font-black uppercase leading-[0.95]">
+              <h2 className="reveal mt-4 font-display text-[clamp(1.75rem,3.3vw,3.1rem)] font-black uppercase leading-[0.95]">
                 Find us <span className="text-accent">online</span>
               </h2>
               <a href={SOCIALS.linktree} target="_blank" rel="noreferrer" className="reveal mt-8 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/80 hover:text-accent">
                 All links on Linktree <ArrowUpRight className="size-4" aria-hidden />
               </a>
             </div>
-            <ul className="divide-y divide-border border-y border-border lg:col-span-7">
+            <ul className="min-w-0 divide-y divide-border border-y border-border lg:col-span-7">
               {SOCIAL_ROWS.map(({ label, handle, href, Icon }) => (
                 <li key={label} className="reveal">
-                  <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="group flex items-center gap-5 py-5">
-                    <Icon className="size-6 text-accent" />
-                    <span className="font-display text-xl font-black uppercase">{label}</span>
-                    <span className="ml-auto truncate text-sm text-muted-foreground">{handle}</span>
+                  <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="group flex items-center gap-4 py-5 sm:gap-5">
+                    <Icon className="size-6 shrink-0 text-accent" />
+                    <span className="shrink-0 font-display text-lg font-black uppercase sm:text-xl">{label}</span>
+                    <span className="ml-auto min-w-0 truncate text-sm text-muted-foreground">{handle}</span>
                     <ArrowUpRight className="size-5 shrink-0 transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
                   </a>
                 </li>
               ))}
-              <li className="reveal flex items-center gap-5 py-5">
-                <span className="font-display text-xl font-black uppercase">WhatsApp community</span>
+              <li className="reveal flex flex-wrap items-center gap-x-5 gap-y-3 py-5">
+                <span className="font-display text-lg font-black uppercase sm:text-xl">WhatsApp community</span>
                 <span className="ml-auto">{SOCIALS.whatsapp ? <a href={SOCIALS.whatsapp}>Join ↗</a> : <Pending what="Link" />}</span>
               </li>
             </ul>

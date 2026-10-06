@@ -216,8 +216,8 @@ function Stats() {
   return (
     <div ref={ref} className="grid grid-cols-2 border-t border-border lg:grid-cols-4">
       {stats.map((s, i) => (
-        <div key={s.label} className={cn("reveal flex flex-col gap-1.5 py-8 pr-4", i % 2 === 1 && "border-l border-border pl-5 lg:pl-8", i >= 2 && "border-t border-border lg:border-t-0", i === 2 && "lg:border-l lg:pl-8")}>
-          <span className="font-display text-[clamp(3rem,6vw,5.5rem)] font-black leading-none">
+        <div key={s.label} className={cn("reveal flex flex-col gap-1.5 py-6 pr-4", i % 2 === 1 && "border-l border-border pl-5 lg:pl-8", i >= 2 && "border-t border-border lg:border-t-0", i === 2 && "lg:border-l lg:pl-8")}>
+          <span className="font-display text-[clamp(2.4rem,4.4vw,4rem)] font-black leading-none">
             <span className="count" data-value={s.value}>{s.value}</span>
             <span className="text-accent">{s.suffix}</span>
           </span>
@@ -232,11 +232,11 @@ function Stats() {
 /* ------------------------------------------------------------------ MK garage teaser */
 function MkStrip() {
   return (
-    <section className="relative py-24 lg:py-32">
-      <Container className="mb-10 flex items-end justify-between gap-6">
+    <section className="relative py-16 lg:py-24">
+      <Container className="mb-8 flex items-end justify-between gap-6">
         <div>
           <Eyebrow>MK Garage</Eyebrow>
-          <h2 className="mt-4 font-display text-[clamp(2rem,4.6vw,4.25rem)] font-black uppercase leading-[0.95]">
+          <h2 className="mt-4 font-display text-[clamp(1.75rem,3.3vw,3.1rem)] font-black uppercase leading-[0.95]">
             Every <span className="text-accent">MK</span>, since 2013
           </h2>
         </div>
@@ -273,12 +273,12 @@ export default function Home() {
         <div className="stripes h-1.5 w-full opacity-90" aria-hidden />
 
         {/* intro + stats */}
-        <section className="py-24 lg:py-32">
+        <section className="py-16 lg:py-24">
           <Container>
             <div className="grid gap-10 lg:grid-cols-12">
               <Eyebrow className="reveal lg:col-span-3">Since {SITE.established} · {SITE.collegeShort}</Eyebrow>
               <div className="lg:col-span-9">
-                <p className="reveal font-display text-[clamp(1.6rem,3.2vw,2.9rem)] font-extrabold uppercase leading-[1.08]">
+                <p className="reveal max-w-4xl font-display text-[clamp(1.35rem,2.4vw,2.25rem)] font-extrabold uppercase leading-[1.12]">
                   Students from every engineering discipline, turning classroom concepts into karts and ATVs{" "}
                   <span className="text-muted-foreground">that pass scrutineering and race at national level.</span>
                 </p>
@@ -287,14 +287,14 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            <div className="mt-20">
+            <div className="mt-12 lg:mt-14">
               <Stats />
             </div>
           </Container>
         </section>
 
         {/* major achievements (brief p.9: "add major achievements in the home page") */}
-        <section className="border-t border-border bg-card py-24 lg:py-32">
+        <section className="border-t border-border bg-card py-16 lg:py-24">
           <Container>
             <SectionHeading
               eyebrow="Major achievements"
@@ -305,12 +305,12 @@ export default function Home() {
               {majors.map((e) => {
                 const best = [...(e.results ?? [])].sort((a, b) => a.rank - b.rank)[0]
                 return (
-                  <article key={e.id} className="reveal flex flex-col gap-4 bg-card p-6 lg:p-8">
+                  <article key={e.id} className="reveal flex flex-col gap-3 bg-card p-5 lg:p-6">
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{e.title}</span>
                       {best && <Rank rank={best.rank} size="lg" />}
                     </div>
-                    <h3 className="font-display text-2xl font-black uppercase leading-tight">
+                    <h3 className="font-display text-xl font-black uppercase leading-tight">
                       {best ? best.event : e.notes?.[0]}
                     </h3>
                     <ul className="mt-auto flex flex-col gap-2 text-sm text-muted-foreground">
@@ -330,16 +330,16 @@ export default function Home() {
         <MkStrip />
 
         {/* explore: shortcuts to every page */}
-        <section className="border-t border-border py-24 lg:py-32">
+        <section className="border-t border-border py-16 lg:py-24">
           <Container>
             <SectionHeading eyebrow="Explore" title={<>Inside <span className="text-accent">Meckartans</span></>} />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {NAV.filter((n) => SHORTCUT_IMG[n.to]).map((n, i) => (
-                <Link key={n.to} href={n.to} className="reveal group relative isolate flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-card border border-border p-6">
+                <Link key={n.to} href={n.to} className="reveal group relative isolate flex aspect-[2/1] flex-col justify-end overflow-hidden rounded-card border border-border p-5 sm:aspect-[4/3] lg:aspect-[16/10]">
                   <img src={SHORTCUT_IMG[n.to]} alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-60 transition-[transform,opacity] duration-[1.2s] ease-(--ease-out-expo) group-hover:scale-105 group-hover:opacity-80" />
                   <div className="absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/40 to-transparent" />
                   <span className="font-mono text-xs text-accent">0{i + 1}</span>
-                  <span className="mt-2 flex items-center justify-between font-display text-3xl font-black uppercase">
+                  <span className="mt-1.5 flex items-center justify-between font-display text-2xl font-black uppercase">
                     {n.label}
                     <ArrowUpRight className="size-6 transition-transform duration-500 group-hover:-translate-y-1 group-hover:translate-x-1" aria-hidden />
                   </span>
@@ -353,7 +353,7 @@ export default function Home() {
         <PhotoBand image="/media/hero/band-track.webp">
           <Container className="text-center">
             <Eyebrow className="reveal justify-center">Support us</Eyebrow>
-            <h2 className="reveal mx-auto mt-5 max-w-4xl font-display text-[clamp(2.25rem,6vw,5.5rem)] font-black uppercase leading-[0.92]">
+            <h2 className="reveal mx-auto mt-5 max-w-4xl font-display text-[clamp(2rem,4.4vw,4rem)] font-black uppercase leading-[0.92]">
               Fuel the <span className="text-accent">next MK</span>
             </h2>
             <p className="reveal mx-auto mt-6 max-w-xl text-foreground/85">Back the build through crowdfunding, or partner with us as a sponsor.</p>

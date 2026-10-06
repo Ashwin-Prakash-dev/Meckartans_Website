@@ -3,10 +3,10 @@
 import { useRef, type ReactNode } from "react"
 
 import { gsap, MOTION_OK, useGSAP } from "@/lib/motion"
-import { cn } from "@/lib/utils"
+import { cn, SHELL } from "@/lib/utils"
 
 export function Container({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("mx-auto w-full max-w-[1500px] px-5 sm:px-8", className)}>{children}</div>
+  return <div className={cn(SHELL, className)}>{children}</div>
 }
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
@@ -19,10 +19,10 @@ export function Eyebrow({ children, className }: { children: ReactNode; classNam
 
 export function SectionHeading({ eyebrow, title, aside, className }: { eyebrow: string; title: ReactNode; aside?: ReactNode; className?: string }) {
   return (
-    <div className={cn("mb-10 grid gap-6 lg:mb-14 lg:grid-cols-12 lg:items-end", className)}>
+    <div className={cn("mb-8 grid gap-5 lg:mb-10 lg:grid-cols-12 lg:items-end", className)}>
       <div className="lg:col-span-8">
         <Eyebrow className="reveal">{eyebrow}</Eyebrow>
-        <h2 className="reveal mt-4 font-display text-[clamp(2rem,4.6vw,4.25rem)] font-black uppercase leading-[0.95]">{title}</h2>
+        <h2 className="reveal mt-4 font-display text-[clamp(1.75rem,3.3vw,3.1rem)] font-black uppercase leading-[0.95]">{title}</h2>
       </div>
       {aside && <div className="reveal text-sm leading-relaxed text-muted-foreground lg:col-span-4">{aside}</div>}
     </div>
@@ -35,7 +35,7 @@ export function Rank({ rank, size = "md" }: { rank: 1 | 2 | 3; size?: "md" | "lg
     <span
       className={cn(
         "inline-flex shrink-0 items-baseline gap-1 rounded-base font-display font-black uppercase leading-none",
-        size === "lg" ? "px-3 py-2 text-3xl" : "px-2 py-1 text-sm",
+        size === "lg" ? "px-2.5 py-1.5 text-2xl" : "px-2 py-1 text-sm",
         rank === 1 && "bg-accent text-on-accent",
         rank === 2 && "bg-foreground text-background",
         rank === 3 && "border border-foreground/50 text-foreground"
@@ -59,7 +59,7 @@ export function PhotoBand({ image, children, className }: { image: string; child
     { scope: root }
   )
   return (
-    <section ref={root} className={cn("relative isolate flex min-h-[70svh] items-center overflow-hidden", className)}>
+    <section ref={root} className={cn("relative isolate flex min-h-[55svh] items-center overflow-hidden", className)}>
       <div className="absolute inset-0 -z-10" aria-hidden>
         <img src={image} alt="" loading="lazy" className="band-img absolute inset-x-0 -top-[15%] h-[130%] w-full object-cover" />
         <div className="absolute inset-0 bg-background/60" />

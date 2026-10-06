@@ -122,7 +122,7 @@ export default function Support() {
               aside="Your brand on our vehicles, kit and channels, at national student motorsport events. Get in touch with the sponsorship wing."
             />
             <div className="grid gap-5 lg:grid-cols-3">
-              <article className="reveal rounded-card border border-border bg-background p-7">
+              <article className="reveal min-w-0 rounded-card border border-border bg-background p-6 sm:p-7">
                 <h3 className="font-display text-xl font-black uppercase">Sponsorship wing</h3>
                 <ul className="mt-5 flex flex-col gap-5">
                   {SPONSORSHIP.wing.map((p) => (
@@ -138,7 +138,7 @@ export default function Support() {
                 </ul>
               </article>
 
-              <article className="reveal flex flex-col rounded-card border border-border bg-background p-7">
+              <article className="reveal flex min-w-0 flex-col rounded-card border border-border bg-background p-6 sm:p-7">
                 <h3 className="font-display text-xl font-black uppercase">Brochure & enquiries</h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Download the sponsorship brochure, or write to us and we'll send the current deck.</p>
                 <div className="mt-auto flex flex-col gap-3 pt-6">
@@ -147,11 +147,11 @@ export default function Support() {
                   ) : (
                     <Pending what="Brochure PDF" />
                   )}
-                  <a href={mail} className="inline-flex items-center justify-center gap-2 border border-foreground/40 px-6 py-3.5 font-mono text-xs uppercase tracking-[0.2em] hover:border-accent"><Mail className="size-4" /> {SITE.email}</a>
+                  <a href={mail} className="inline-flex items-center justify-center gap-2 border border-foreground/40 px-4 py-3.5 font-mono text-xs uppercase tracking-[0.12em] hover:border-accent sm:px-6 sm:tracking-[0.2em]"><Mail className="size-4 shrink-0" /> <span className="min-w-0 break-all">{SITE.email}</span></a>
                 </div>
               </article>
 
-              <article className="reveal rounded-card border border-border bg-background p-7">
+              <article className="reveal min-w-0 rounded-card border border-border bg-background p-6 sm:p-7">
                 <h3 className="font-display text-xl font-black uppercase">Our sponsors</h3>
                 {SPONSORSHIP.history.length ? (
                   <ul className="mt-5 grid grid-cols-2 gap-3">

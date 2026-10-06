@@ -61,7 +61,7 @@ export function MkAccordion({ className }: { className?: string }) {
   return (
     <MotionConfig reducedMotion="user">
       <div
-        className={cn("flex flex-col gap-1.5 lg:h-[min(64svh,620px)] lg:flex-row lg:gap-2", className)}
+        className={cn("flex flex-col gap-1.5 lg:h-[min(56svh,520px)] lg:flex-row lg:gap-2", className)}
         role="group"
         aria-label="MK series vehicles"
         onKeyDown={(e) => {
@@ -97,7 +97,7 @@ export function MkAccordion({ className }: { className?: string }) {
                 "group relative shrink-0 overflow-hidden rounded-card border border-border bg-muted text-left",
                 "transition-[height,flex-grow,border-color] duration-700 ease-(--ease-out-expo)",
                 // vertical stack below lg: strips grow in height; row at lg: they grow in width
-                active ? "h-72 border-accent/60 sm:h-96 lg:h-auto lg:w-11 lg:grow" : "h-12 lg:h-auto lg:w-11 lg:grow-0 hover:border-foreground/30"
+                active ? "h-60 border-accent/60 sm:h-80 lg:h-auto lg:w-11 lg:grow" : "h-11 lg:h-auto lg:w-11 lg:grow-0 hover:border-foreground/30"
               )}
             >
               <motion.img
@@ -132,7 +132,7 @@ export function MkAccordion({ className }: { className?: string }) {
                 aria-hidden
               >
                 <span>
-                  <span className="block font-display text-5xl font-black uppercase leading-none lg:text-6xl">{item.name}</span>
+                  <span className="block font-display text-4xl font-black uppercase leading-none lg:text-5xl">{item.name}</span>
                   <span className="mt-2 block font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/75">
                     {CATEGORY_LABEL[item.category]} · View details
                   </span>
