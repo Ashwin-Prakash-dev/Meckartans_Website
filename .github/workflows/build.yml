@@ -1,0 +1,40 @@
+# Build check: every PR into main, test or a version branch (and every push to them) must build.
+# `next build` also runs the TypeScript check, so a type error fails this too.
+# To make it block merging: Settings → Rules → require the "Build" status check on these branches.
+
+name: Build check
+
+on:
+  pull_request:
+    branches: [main, test, "version-*"]
+  push:
+    branches: [main, test, "version-*"]
+
+# a newer push to the same PR or branch cancels the older run
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (includes type check)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
