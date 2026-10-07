@@ -9,7 +9,7 @@ components and animations. Only the framework layer differs (routing, server ren
 | `/` | Home: logo, team photo/video slideshow, tagline, intro, shortcuts to every page, major achievements | p.4, p.9 |
 | `/about` | About text (verbatim), what we do, workshops & events, social links | p.5, p.11 |
 | `/team` | Faculty advisors + executive committee cards (photo, name, position, LinkedIn) | p.6 |
-| `/gallery` | Full-screen video, then ALL / VEHICLES / … / EVENTS filters (`?c=`), mixed-size grid, lightbox | p.7 |
+| `/gallery` | Full-screen video, then ALL / VEHICLES / … / EVENTS filters (`?c=`) over a 3D photo field (three.js; scroll to fly, drag to pan, click to open) or the mixed-size grid (`?view=grid`; default for reduced motion / no WebGL), lightbox | p.7 |
 | `/garage` | All 18 vehicles by IC / Electric / ATV; detail sheet (`?v=mk11`) with specs, events, leadership, photos | p.8 |
 | `/achievements` | Timeline, newest first (`#fkdc-4` anchors) | p.9 |
 | `/support` | Support our journey (CFR video, crowdfunding, bank) + sponsorship portal (`#sponsorship`) | p.10 |

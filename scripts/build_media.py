@@ -3,6 +3,7 @@
 
 Outputs (public/media/...):
   gallery/<id>-s.webp, gallery/<id>-l.webp   grid thumbnail (720w) + lightbox size (2000px long edge)
+  gallery/<id>-t.webp                        depth-field texture (512px long edge)
   vehicles/<slug>.webp, vehicles/<slug>-s.webp
   hero/<name>.webp                           full-bleed page backgrounds (2400w)
   team/<slug>.webp                           square portraits cropped from the brief's team images
@@ -75,6 +76,7 @@ def build_gallery():
             seen.add(i)
             im = load(i)
             save_webp(im, f"{PUB}/gallery/{i}-s.webp", max_w=720, q=72)
+            save_webp(im, f"{PUB}/gallery/{i}-t.webp", max_edge=512, q=72)  # WebGL texture for the gallery depth field
             w, h = save_webp(im, f"{PUB}/gallery/{i}-l.webp", max_edge=2000, q=80)
             out.append({"id": i, "cat": cat, "w": w, "h": h, "label": label_for(inv[i]["src"]), "featured": i in FEATURED})
     # interleave categories so "All" doesn't open on 60 competition shots in a row
