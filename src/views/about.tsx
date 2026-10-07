@@ -9,6 +9,7 @@ import { FacebookIcon, InstagramIcon, LinkedinIcon, YoutubeIcon } from "@/compon
 import { PageHero } from "@/components/page-hero"
 import { Pending } from "@/components/pending"
 import { Container, Eyebrow, PhotoBand, SectionHeading } from "@/components/ui"
+import { ABOUT_HERO_PHOTO } from "@/lib/hero-morph"
 import { useReveal } from "@/lib/motion"
 
 const PILLARS = [
@@ -35,8 +36,9 @@ export default function About() {
         eyebrow="About us"
         title={["Team", <span key="m" className="text-accent">Meckartans</span>]}
         intro={`The official student motorsport team of ${SITE.college}, ${SITE.city}. Established in ${SITE.established}.`}
-        image="/media/hero/about.webp"
-        objectPosition="50% 60%"
+        // the home intro photo grows into this one (lib/hero-morph.ts), so it must match it
+        image={ABOUT_HERO_PHOTO.src}
+        objectPosition={ABOUT_HERO_PHOTO.position}
       />
 
       <div ref={main}>

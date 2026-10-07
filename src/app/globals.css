@@ -91,7 +91,11 @@ img, video { display: block; }
    layout.tsx; it's removed again after 4s if the app never hydrates, so content can't stay hidden. */
 .js .fouc { visibility: hidden; }
 .js .reveal { opacity: 0; }
+.js .split-word { opacity: 0; } /* components/split-text.tsx */
+.js .clip-reveal { clip-path: inset(100% 0 0 0); } /* wiped up into view (home intro photo) */
 @media (prefers-reduced-motion: reduce) {
   .js .fouc { visibility: visible; }
   .js .reveal { opacity: 1; }
+  .js .split-word { opacity: 1; }
+  .js .clip-reveal { clip-path: none; }
 }

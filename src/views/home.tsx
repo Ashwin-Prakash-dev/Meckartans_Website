@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { animate, useInView, type AnimationPlaybackControls } from "motion/react"
 import { ArrowRight, ArrowUpRight } from "lucide-react"
 
 import { STATS, TIMELINE } from "@/content/achievements"
@@ -9,9 +11,13 @@ import { NAV, SITE } from "@/content/site"
 import { VEHICLES } from "@/content/vehicles"
 import { useCurrentYear } from "@/components/current-year"
 import { MkAccordion } from "@/components/mk-accordion"
+import { MkPlanes } from "@/components/mk-planes"
 import { useGoContact } from "@/components/nav"
+import { SplitText } from "@/components/split-text"
 import { Container, Eyebrow, PhotoBand, Rank, SectionHeading } from "@/components/ui"
+import { ABOUT_HERO_PHOTO, morphToHero } from "@/lib/hero-morph"
 import { EASE, gsap, MOTION_OK, ScrollTrigger, useGSAP, useReveal } from "@/lib/motion"
+import { whenRevealed } from "@/lib/page-transition"
 import { cn } from "@/lib/utils"
 
 /* ------------------------------------------------------------------ hero slideshow */
@@ -52,28 +58,32 @@ function Hero() {
     return () => io.disconnect()
   }, [active, src])
 
+  // after a route transition, the intro waits for the overlay to open (lib/page-transition.ts)
   useGSAP(
-    () => {
-      gsap.set(root.current, { visibility: "visible" }) // server-rendered: hidden by .fouc until the intro starts
-      gsap.matchMedia().add(MOTION_OK, () => {
-        gsap
-          .timeline({ defaults: { ease: EASE } })
-          .from(".h-media", { opacity: 0, scale: 1.1, duration: 2.6, ease: "power2.out" }, 0)
-          .from(".h-logo", { opacity: 0, y: 20, scale: 0.9, duration: 1.2 }, 0.3)
-          .from(".h-title", { opacity: 0, letterSpacing: "0.4em", duration: 1.8 }, 0.45)
-          .from(".h-fade", { opacity: 0, y: 18, duration: 1, stagger: 0.1 }, 1)
-          .from(".h-cta-line", { scaleX: 0, duration: 1.2, ease: "power3.inOut", stagger: 0.1 }, 1.1)
-          .from(".h-index li", { opacity: 0, x: -14, duration: 0.8, stagger: 0.06 }, 1.2)
+    (_, contextSafe) =>
+      whenRevealed(
+        contextSafe!(() => {
+          gsap.set(root.current, { visibility: "visible" }) // server-rendered: hidden by .fouc until the intro starts
+          gsap.matchMedia().add(MOTION_OK, () => {
+            gsap
+              .timeline({ defaults: { ease: EASE } })
+              .from(".h-media", { opacity: 0, scale: 1.1, duration: 2.6, ease: "power2.out" }, 0)
+              .from(".h-logo", { opacity: 0, y: 20, scale: 0.9, duration: 1.2 }, 0.3)
+              .from(".h-title", { opacity: 0, letterSpacing: "0.4em", duration: 1.8 }, 0.45)
+              .from(".h-fade", { opacity: 0, y: 18, duration: 1, stagger: 0.1 }, 1)
+              .from(".h-cta-line", { scaleX: 0, duration: 1.2, ease: "power3.inOut", stagger: 0.1 }, 1.1)
+              .from(".h-index li", { opacity: 0, x: -14, duration: 0.8, stagger: 0.06 }, 1.2)
 
-        // curtain: the hero stays pinned while the page rises over it
-        gsap
-          .timeline({ scrollTrigger: { trigger: root.current, start: "top top", end: "+=100%", pin: true, pinSpacing: false, scrub: 0.6 } })
-          .to(".h-content", { y: -120, opacity: 0, duration: 0.5, ease: "power1.in" }, 0)
-          .to(".h-side", { opacity: 0, duration: 0.3 }, 0)
-          .to(".h-media", { scale: 1.12, duration: 1, ease: "none" }, 0)
-          .to(".h-dim", { opacity: 0.8, duration: 1, ease: "none" }, 0)
-      })
-    },
+            // curtain: the hero stays pinned while the page rises over it
+            gsap
+              .timeline({ scrollTrigger: { trigger: root.current, start: "top top", end: "+=100%", pin: true, pinSpacing: false, scrub: 0.6 } })
+              .to(".h-content", { y: -120, opacity: 0, duration: 0.5, ease: "power1.in" }, 0)
+              .to(".h-side", { opacity: 0, duration: 0.3 }, 0)
+              .to(".h-media", { scale: 1.12, duration: 1, ease: "none" }, 0)
+              .to(".h-dim", { opacity: 0.8, duration: 1, ease: "none" }, 0)
+          })
+        })
+      ),
     { scope: root }
   )
 
@@ -102,8 +112,9 @@ function Hero() {
       </div>
 
       {/* page shortcuts (brief: "small text and shortcuts to all pages") */}
-      <div className="h-side pointer-events-none absolute inset-x-0 top-1/2 z-10 hidden -translate-y-1/2 xl:block">
-        <Container>
+      {/* Pinned to the viewport's left edge, 1536px+ only: narrower, it collides with the one-line title (the navbar has the same links). */}
+      <div className="h-side pointer-events-none absolute left-12 top-1/2 z-10 hidden -translate-y-1/2 2xl:block">
+        <div>
           <nav aria-label="Sections" className="pointer-events-auto w-fit">
             <ol className="h-index flex flex-col gap-3 border-l border-foreground/25 pl-6">
               {NAV.map((n, i) => (
@@ -121,7 +132,7 @@ function Hero() {
               ))}
             </ol>
           </nav>
-        </Container>
+        </div>
       </div>
 
       {/* centre copy */}
@@ -229,8 +240,56 @@ function Stats() {
   )
 }
 
+/* ------------------------------------------------------------------ intro photo */
+// Wipes up into view (hidden by `.js .clip-reveal` until then) while the photo settles from a slight zoom.
+// "About the team" grows it into the About hero (lib/hero-morph.ts).
+function IntroPhoto({ imgRef }: { imgRef: React.RefObject<HTMLImageElement | null> }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true, margin: "0px 0px -15% 0px" })
+  useEffect(() => {
+    const el = ref.current
+    if (!inView || !el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    let controls: AnimationPlaybackControls[] = []
+    const cancel = whenRevealed(() => {
+      controls = [
+        animate(el, { clipPath: ["inset(100% 0% 0% 0%)", "inset(0% 0% 0% 0%)"] }, { duration: 1.4, ease: [0.16, 1, 0.3, 1] }),
+        animate(el.querySelector("img")!, { scale: [1.25, 1] }, { duration: 1.8, ease: [0.16, 1, 0.3, 1] }),
+      ]
+    })
+    return () => {
+      cancel()
+      controls.forEach((c) => c.stop())
+    }
+  }, [inView])
+
+  return (
+    <figure className="relative">
+      <div ref={ref} className="clip-reveal relative aspect-[4/5] overflow-hidden rounded-card border border-border bg-muted">
+        <img
+          ref={imgRef}
+          src={ABOUT_HERO_PHOTO.src}
+          alt="A team driver in a teal MKE1 electric kart at the paddock"
+          loading="lazy"
+          className="h-full w-full object-cover"
+          style={{ objectPosition: ABOUT_HERO_PHOTO.position }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" aria-hidden />
+      </div>
+      <figcaption className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        <span>MKE1 · Electric kart</span>
+        <span className="text-accent">Paddock · {SITE.collegeShort}</span>
+      </figcaption>
+    </figure>
+  )
+}
+
 /* ------------------------------------------------------------------ MK garage teaser */
+// 3D planes you fly through on scroll; reduced motion keeps the hover accordion.
 function MkStrip() {
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches), [])
+  if (!reduced) return <MkPlanes />
+
   return (
     <section className="relative py-16 lg:py-24">
       <Container className="mb-8 flex items-end justify-between gap-6">
@@ -263,6 +322,8 @@ const SHORTCUT_IMG: Record<string, string> = {
 
 export default function Home() {
   const main = useRef<HTMLDivElement>(null)
+  const introPhoto = useRef<HTMLImageElement>(null)
+  const router = useRouter()
   useReveal(main)
   const majors = TIMELINE.filter((e) => e.major)
 
@@ -272,19 +333,29 @@ export default function Home() {
       <div ref={main} className="relative z-10 bg-background">
         <div className="stripes h-1.5 w-full opacity-90" aria-hidden />
 
-        {/* intro + stats */}
+        {/* intro (words split in on scroll) + photo, then stats */}
         <section className="py-16 lg:py-24">
           <Container>
-            <div className="grid gap-10 lg:grid-cols-12">
-              <Eyebrow className="reveal lg:col-span-3">Since {SITE.established} · {SITE.collegeShort}</Eyebrow>
-              <div className="lg:col-span-9">
-                <p className="reveal max-w-4xl font-display text-[clamp(1.35rem,2.4vw,2.25rem)] font-extrabold uppercase leading-[1.12]">
-                  Students from every engineering discipline, turning classroom concepts into karts and ATVs{" "}
-                  <span className="text-muted-foreground">that pass scrutineering and race at national level.</span>
-                </p>
-                <Link href="/about" className="reveal mt-8 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/80 hover:text-accent">
+            <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-16">
+              <div className="lg:col-span-7">
+                <Eyebrow className="reveal">Since {SITE.established} · {SITE.collegeShort}</Eyebrow>
+                <SplitText
+                  className="mt-8 font-display text-[clamp(1.35rem,2.4vw,2.25rem)] font-extrabold uppercase leading-[1.12]"
+                  parts={[
+                    { text: "Students from every engineering discipline, turning classroom concepts into karts and ATVs" },
+                    { text: "that pass scrutineering and race at national level.", className: "text-muted-foreground" },
+                  ]}
+                />
+                <Link
+                  href="/about"
+                  onClick={(e) => morphToHero(e, introPhoto.current, router.push)}
+                  className="reveal mt-8 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/80 hover:text-accent"
+                >
                   About the team <ArrowRight className="size-4" aria-hidden />
                 </Link>
+              </div>
+              <div className="sm:mx-auto sm:w-3/5 lg:col-span-5 lg:w-full">
+                <IntroPhoto imgRef={introPhoto} />
               </div>
             </div>
             <div className="mt-12 lg:mt-14">

@@ -3,6 +3,7 @@ import { Archivo, Roboto_Mono } from "next/font/google"
 
 import { Footer } from "@/components/footer"
 import { Nav } from "@/components/nav"
+import { PageTransition } from "@/components/page-transition"
 import { RouteScroll, SmoothScroll } from "@/components/smooth-scroll"
 
 import "./globals.css"
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main id="main">{children}</main>
           <Footer />
           <RouteScroll />
+          <PageTransition />
         </SmoothScroll>
       </body>
     </html>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 
 import { EASE, gsap, MOTION_OK, useGSAP } from "@/lib/motion"
+import { takeHeroHandoff, whenRevealed } from "@/lib/page-transition"
 import { cn, SHELL } from "@/lib/utils"
 
 type Props = {
@@ -24,21 +25,27 @@ type Props = {
 export function PageHero({ eyebrow, title, intro, image, video, objectPosition = "50% 50%", tall, children }: Props) {
   const root = useRef<HTMLElement>(null)
 
+  // after a route transition, the intro waits for the overlay to open (lib/page-transition.ts);
+  // after the home photo morph (lib/hero-morph.ts) the photo is already in place, so only the copy animates
   useGSAP(
-    () => {
-      gsap.set(root.current, { visibility: "visible" }) // server-rendered: hidden by .fouc until the intro starts
-      gsap.matchMedia().add(MOTION_OK, () => {
-        gsap
-          .timeline({ defaults: { ease: EASE } })
-          .from(".ph-media", { scale: 1.15, opacity: 0, duration: 2 }, 0)
-          .from(".ph-line", { yPercent: 110, duration: 1.2, stagger: 0.08 }, 0.2)
-          .from(".ph-fade", { opacity: 0, y: 16, duration: 1, stagger: 0.1 }, 0.6)
+    (_, contextSafe) =>
+      whenRevealed(
+        contextSafe!(() => {
+          const handoff = takeHeroHandoff()
+          gsap.set(root.current, { visibility: "visible" }) // server-rendered: hidden by .fouc until the intro starts
+          gsap.matchMedia().add(MOTION_OK, () => {
+            const intro = gsap.timeline({ defaults: { ease: EASE } })
+            if (!handoff) intro.from(".ph-media", { scale: 1.15, opacity: 0, duration: 2 }, 0)
+            intro
+              .from(".ph-line", { yPercent: 110, duration: 1.2, stagger: 0.08 }, handoff ? 0 : 0.2)
+              .from(".ph-fade", { opacity: 0, y: 16, duration: 1, stagger: 0.1 }, handoff ? 0.35 : 0.6)
 
-        const st = { trigger: root.current, start: "top top", end: "bottom top", scrub: true }
-        gsap.to(".ph-media", { yPercent: 18, scale: 1.08, ease: "none", scrollTrigger: st })
-        gsap.to(".ph-copy", { yPercent: -30, opacity: 0, ease: "none", scrollTrigger: { ...st, end: "80% top" } })
-      })
-    },
+            const st = { trigger: root.current, start: "top top", end: "bottom top", scrub: true }
+            gsap.to(".ph-media", { yPercent: 18, scale: 1.08, ease: "none", scrollTrigger: st })
+            gsap.to(".ph-copy", { yPercent: -30, opacity: 0, ease: "none", scrollTrigger: { ...st, end: "80% top" } })
+          })
+        })
+      ),
     { scope: root }
   )
 
@@ -51,7 +58,7 @@ export function PageHero({ eyebrow, title, intro, image, video, objectPosition =
   }, [vSrc, vMobile])
 
   return (
-    <section ref={root} className={cn("fouc relative isolate flex items-end overflow-hidden bg-background", tall ? "min-h-svh" : "min-h-[78svh]")}>
+    <section ref={root} data-page-hero className={cn("fouc relative isolate flex items-end overflow-hidden bg-background", tall ? "min-h-svh" : "min-h-[78svh]")}>
       <div className="absolute inset-0 -z-10 overflow-hidden" aria-hidden>
         {video ? (
           <video
