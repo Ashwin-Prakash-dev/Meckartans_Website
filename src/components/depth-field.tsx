@@ -122,7 +122,6 @@ export function DepthField({
   const engine = useRef<{ rebuild: () => void; unfocus: () => void } | null>(null)
   const [focused, setFocused] = useState<FieldPhoto | null>(null)
   const [shown, setShown] = useState<FieldPhoto | null>(null) // stays set while the caption fades out
-  const [coarse, setCoarse] = useState(false)
 
   useEffect(() => {
     if (focused) setShown(focused)
@@ -143,7 +142,6 @@ export function DepthField({
     }
     const isCoarse = window.matchMedia("(pointer: coarse)").matches
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    setCoarse(isCoarse)
 
     renderer.setClearColor(0x000000, 0)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isCoarse ? 1.25 : 1.5))
@@ -602,16 +600,6 @@ export function DepthField({
         >
           {children}
         </div>
-
-        {/* how to use it, until a photo is open */}
-        <p
-          className={cn(
-            "pointer-events-none absolute inset-x-0 bottom-7 z-10 px-5 text-center font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-opacity duration-300",
-            focused && "opacity-0"
-          )}
-        >
-          {coarse ? "Swipe up to fly · Drag sideways · Tap a photo" : "Scroll to fly · Drag to look around · Click a photo"}
-        </p>
 
         {/* the open photo's caption */}
         <div

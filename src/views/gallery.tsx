@@ -106,24 +106,25 @@ function GalleryBody({ filter, view: chosen }: { filter: Filter; view: View | nu
       <>
         <div ref={start} />
         <DepthField photos={list} onOpen={(p) => setOpen(list.findIndex((q) => q.id === p.id))} onUnsupported={() => setNoWebGL(true)}>
-          <div className={cn(SHELL, "flex flex-col gap-4 pt-24 lg:pt-28")}>
-            <div className="flex items-center justify-between gap-4">
-              <Eyebrow>
-                Photo field <span className="text-foreground/50">({list.length})</span>
-              </Eyebrow>
-              <div className="pointer-events-auto">
-                <ViewToggle view={view} onChange={switchView} />
-              </div>
+          <div className={cn(SHELL, "flex items-center justify-between gap-4 pt-24 lg:pt-28")}>
+            <Eyebrow>
+              Photo field <span className="text-foreground/50">({list.length})</span>
+            </Eyebrow>
+            <div className="pointer-events-auto">
+              <ViewToggle view={view} onChange={switchView} />
             </div>
+          </div>
+          {/* category filters, along the bottom */}
+          <div className={cn(SHELL, "absolute inset-x-0 bottom-6 flex justify-center")}>
             <div className="pointer-events-auto w-fit max-w-full rounded-base border border-border bg-background/60 px-1 backdrop-blur-md">{filters}</div>
           </div>
-          {/* the reference's corner wordmarks */}
-          <span className="absolute bottom-16 left-10 hidden font-display text-[clamp(2.5rem,5vw,5.5rem)] font-black uppercase leading-[0.9] text-foreground/[0.07] md:block lg:left-16" aria-hidden>
+          {/* the reference's corner wordmarks, above the filters */}
+          <span className="absolute bottom-32 left-10 hidden font-display text-[clamp(2.5rem,5vw,5.5rem)] font-black uppercase leading-[0.9] text-foreground/[0.07] md:block lg:left-16" aria-hidden>
             Every
             <br />
             build.
           </span>
-          <span className="absolute bottom-16 right-10 hidden text-right font-display text-[clamp(2.5rem,5vw,5.5rem)] font-black uppercase leading-[0.9] text-accent/[0.14] md:block lg:right-16" aria-hidden>
+          <span className="absolute bottom-32 right-10 hidden text-right font-display text-[clamp(2.5rem,5vw,5.5rem)] font-black uppercase leading-[0.9] text-accent/[0.14] md:block lg:right-16" aria-hidden>
             Every
             <br />
             race.
