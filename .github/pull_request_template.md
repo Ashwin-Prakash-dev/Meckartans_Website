@@ -4,7 +4,9 @@ Where is this PR going?
   feature  → test            promoting a chosen feature into the combined site; the repo owner reviews
   test     → main            releasing the combined site; repo owner only
   hotfix   → main            urgent production fix, branched from main; merged back into test afterwards
-Feature branches start from `test` and are named for their team: v1/…, v2/…, v3/… (e.g. v2/gallery-field).
+Feature branches start from your team's version branch (version-1, version-2 or version-3) and are named for
+the team: v1/…, v2/…, v3/… (e.g. v2/custom-cursor). When the work is done, open the PR back into that same
+version branch.
 Delete the sections that don't apply to this PR.
 -->
 
@@ -17,7 +19,7 @@ Delete the sections that don't apply to this PR.
 
 ## Every PR
 
-- [ ] Branched from `test` (hotfixes: from `main`) and named `v1/…`, `v2/…` or `v3/…`
+- [ ] Branched from my team's `version-N` branch (hotfixes: from `main`), named `vN/…`, and this PR goes back into that same `version-N` branch
 - [ ] Build check passes
 - [ ] Checked on a desktop screen and a phone-sized screen
 - [ ] Checked with reduced motion turned on (animations calm down or switch off)
