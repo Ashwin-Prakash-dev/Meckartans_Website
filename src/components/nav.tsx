@@ -78,7 +78,7 @@ export function Nav() {
             <img src="/media/brand/logo-light.png" alt={SITE.name} width={605} height={449} className="h-11 w-auto" />
           </Link>
 
-          <nav aria-label="Primary" className="hidden items-center gap-7 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground/75 xl:flex">
+          <nav aria-label="Primary" className="hidden items-center gap-7 font-sans text-xs font-semibold uppercase tracking-[0.12em] text-foreground/75 xl:flex">
             {NAV.map((n) =>
               n.to.startsWith("#") ? (
                 <a key={n.label} href="#contact" onClick={goContact} className={cn(link, "border border-foreground/35 px-4 py-2.5 hover:border-accent")}>

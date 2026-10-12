@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Archivo, Roboto_Mono } from "next/font/google"
+import { Archivo, Barlow_Condensed, IBM_Plex_Mono } from "next/font/google"
 
 import { Footer } from "@/components/footer"
 import { Nav } from "@/components/nav"
@@ -8,10 +8,32 @@ import { RouteScroll, SmoothScroll } from "@/components/smooth-scroll"
 
 import "./globals.css"
 
-// Same families/axes the Vite build loaded from Google Fonts, self-hosted by next/font.
-// Tokens reference these variables (tokens.json -> --font-archivo / --font-roboto-mono).
-const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], style: ["normal", "italic"], variable: "--font-archivo", display: "swap" })
-const robotoMono = Roboto_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-roboto-mono", display: "swap" })
+// Premium motorsport typography system:
+// - Headings: Barlow Condensed (700, 800, 900)
+// - Body: Archivo (400, 500, 600, 700)
+// - Technical accents / telemetry: IBM Plex Mono (400, 500)
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["700", "800", "900"],
+  style: ["normal", "italic"],
+  variable: "--font-barlow-condensed",
+  display: "swap",
+})
+
+const archivo = Archivo({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-archivo",
+  display: "swap",
+})
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-ibm-plex-mono",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   title: { default: "Team Meckartans | SCTCE Student Motorsport", template: "%s | Team Meckartans" },
@@ -28,7 +50,7 @@ const FOUC_GUARD = `(function(){var d=document.documentElement;d.classList.add("
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${archivo.variable} ${robotoMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`dark ${barlowCondensed.variable} ${archivo.variable} ${ibmPlexMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: FOUC_GUARD }} />
       </head>

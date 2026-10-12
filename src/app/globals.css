@@ -43,9 +43,11 @@ body {
 :focus-visible { outline: 2px solid var(--ds-color-ring); outline-offset: 3px; }
 img, video { display: block; }
 
-/* Archivo is variable: the display voice uses its expanded width. Only font-stretch here (an unlayered
-   letter-spacing would override Tailwind's tracking-* utilities). */
-.font-display { font-stretch: 125%; }
+:root {
+  --font-display: var(--font-barlow-condensed);
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-ibm-plex-mono);
+}
 
 /* Team trim (from the jersey): diagonal red + white racing stripes. */
 .stripes {

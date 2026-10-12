@@ -50,7 +50,7 @@ All text, names, results and links live in `src/content/`: `site.ts`, `team.ts`,
 Design tokens: edit `tokens.json`, then
 `node ../skills/design-system/scripts/generate-tokens.cjs --config tokens.json -o src/styles/tokens.css`.
 Fonts are self-hosted by `next/font` in `src/app/layout.tsx`; the tokens point at its CSS variables
-(`--font-archivo`, `--font-roboto-mono`).
+(`--font-barlow-condensed`, `--font-archivo`, `--font-ibm-plex-mono`).
 
 ## What changed from the Vite build (and why)
 
