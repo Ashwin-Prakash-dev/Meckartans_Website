@@ -1,137 +1,254 @@
 "use client"
 
-// Route transition, after Motion's "Loading overlay" line reveal (motion.dev/examples/react-loading-line-reveal),
-// in the team red instead of the example's magenta.
-//   cover:  the red sheet closes in from both edges over the current page
-//   load:   a thin dark line grows from the centre while the next route loads (a spring follows the load progress)
-//   reveal: the line splits open sideways onto the new page (ease-out-quart, timed from the example)
-// One red sheet does all three: its clip-path is the screen minus a centred rectangular hole (evenodd polygon), so
-// the line *is* the hole, with a dark layer under it until the reveal.
-// Links are intercepted in the capture phase. preventDefault() stops next/link's own navigation (it runs the link's
-// onClick, then bails on defaultPrevented), and the route is pushed once the screen is covered. Same-page links
-// (#contact, ?v=), links into SKIP routes, new tabs, downloads, external links and reduced motion navigate as before.
-
 import { useEffect, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { animate, motion, useMotionTemplate, useMotionValue, useMotionValueEvent, useSpring, useTransform, type AnimationPlaybackControls } from "motion/react"
-
+import { animate, motion, useMotionValue } from "motion/react"
 import { setCovered } from "@/lib/page-transition"
+import styles from "./page-transition.module.css"
 
-const EASE_IN_OUT = [0.65, 0, 0.35, 1] as const // --ds-motion-ease-in-out
-const EASE_OUT_QUART = [0.25, 1, 0.5, 1] as const
-const LINE = 1.5 // half the line's width, px
-const MIN_LOAD_MS = 250 // the line always gets this long to grow, however fast the route arrives
-const FAILSAFE_MS = 8000 // reveal anyway if the route never commits
-// Routes this transition never runs into. /about has its own entrance from the home page's "About the team" link
-// (the intro photo grows into its hero: lib/hero-morph.ts); every other way in is a plain navigation.
+type Phase = "idle" | "cover" | "load" | "green" | "reveal"
+type View = { active: boolean; count: number; green: boolean; status: string }
+const IDLE: View = { active: false, count: 0, green: false, status: "" }
 const SKIP = new Set(["/about"])
+const EASE = [0.16, 1, 0.3, 1] as const
+const TIMING = { cover: 0.22, step: 60, minimum: 440, green: 150, reveal: 0.32, failsafe: 6000 }
+const normalize = (path: string) => path.replace(/\/+$/, "") || "/"
 
-type Phase = "idle" | "cover" | "load" | "reveal"
-
+/** Mount once in the persistent root layout, outside keyed route content.
+ * Route commit is NOT an image/Suspense readiness guarantee.
+ * data-page-transition="off" lets custom-navigation anchors own their click.
+ */
 export function PageTransition() {
   const router = useRouter()
   const pathname = usePathname()
-  const [active, setActive] = useState(false)
-  const phase = useRef<Phase>("idle")
-  const arrived = useRef(false)
-  const loadStart = useRef(0)
-  const creep = useRef<AnimationPlaybackControls | null>(null)
-  const failsafe = useRef(0)
-
-  // half-size of the hole in px, centred on the screen
-  const holeX = useMotionValue(0)
-  const holeY = useMotionValue(0)
-  const dark = useMotionValue(0)
-  const progress = useMotionValue(0)
-  const loaded = useSpring(progress, { stiffness: 220, damping: 30, restDelta: 0.001 })
-
-  const x = useTransform(holeX, (v) => v.toFixed(2))
-  const y = useTransform(holeY, (v) => v.toFixed(2))
-  const clipPath = useMotionTemplate`polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, calc(50% - ${x}px) calc(50% - ${y}px), calc(50% + ${x}px) calc(50% - ${y}px), calc(50% + ${x}px) calc(50% + ${y}px), calc(50% - ${x}px) calc(50% + ${y}px), calc(50% - ${x}px) calc(50% - ${y}px))`
-
-  const reveal = () => {
-    phase.current = "reveal"
-    window.clearTimeout(failsafe.current)
-    dark.jump(0)
-    setCovered(false) // the new page's intro plays as it opens
-    const opts = { duration: 0.8, delay: 0.07, ease: EASE_OUT_QUART }
-    animate(holeY, window.innerHeight / 2 + 2, opts)
-    animate(holeX, window.innerWidth / 2 + 2, opts).then(() => {
-      phase.current = "idle"
-      setActive(false)
-    })
-  }
-
-  // load phase: the line's height follows the progress spring; full height + route committed = open
-  useMotionValueEvent(loaded, "change", (v) => {
-    if (phase.current !== "load") return
-    holeY.set((v * window.innerHeight) / 2)
-    if (arrived.current && v > 0.995) reveal()
-  })
-
-  const arrive = () => {
-    if (phase.current !== "load" || arrived.current) return
-    window.setTimeout(() => {
-      creep.current?.stop()
-      arrived.current = true
-      progress.set(1)
-    }, Math.max(0, MIN_LOAD_MS - (performance.now() - loadStart.current)))
-  }
-
-  const start = (href: string) => {
-    phase.current = "cover"
-    arrived.current = false
-    setCovered(true)
-    holeX.jump(window.innerWidth / 2 + 2)
-    holeY.jump(window.innerHeight / 2 + 2)
-    dark.jump(0)
-    progress.jump(0)
-    loaded.jump(0)
-    setActive(true)
-
-    animate(holeX, 0, { duration: 0.35, ease: EASE_IN_OUT }).then(() => {
-      // covered: swap the hole for a zero-height line over the dark layer, then load
-      holeY.jump(0)
-      holeX.jump(LINE)
-      dark.jump(1)
-      phase.current = "load"
-      loadStart.current = performance.now()
-      // quick to 80%, then a slow crawl while the route is still loading (dev compiles, slow networks)
-      creep.current = animate(progress, [0, 0.8, 0.95], { duration: 5, times: [0, 0.07, 1], ease: ["easeOut", "linear"] })
-      failsafe.current = window.setTimeout(arrive, FAILSAFE_MS)
-      router.push(href)
-    })
-  }
-
-  // the route committed: give it a moment to paint (and RouteScroll to reset the scroll), then finish the line
-  useEffect(() => {
-    if (phase.current !== "load") return
-    const id = window.setTimeout(arrive, 60)
-    return () => window.clearTimeout(id)
-  }, [pathname])
+  const [view, setView] = useState<View>(IDLE)
+  const opacity = useMotionValue(0)
+  const lift = useMotionValue(0)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const committedRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-      const a = (e.target as Element | null)?.closest?.("a")
-      if (!(a instanceof HTMLAnchorElement) || !a.href) return
-      if ((a.target && a.target !== "_self") || a.hasAttribute("download")) return
-      const url = new URL(a.href, window.location.href)
-      if (url.origin !== window.location.origin || url.pathname === window.location.pathname || SKIP.has(url.pathname)) return
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
-      e.preventDefault()
-      if (phase.current === "idle") start(url.pathname + url.search + url.hash)
+    let phase: Phase = "idle"
+    let disposed = false
+    let startedAt = 0
+    let ready = false
+    let queued = false
+    let sourcePath = ""
+    let previousFocus: HTMLElement | null = null
+    const timers = new Set<ReturnType<typeof setTimeout>>()
+    const frames = new Set<number>()
+    const controls = new Set<{ stop: () => void }>()
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const later = (fn: () => void, delay: number) => {
+      const id = setTimeout(() => { timers.delete(id); if (!disposed) fn() }, delay)
+      timers.add(id)
+    }
+    const frame = (fn: () => void) => {
+      const id = requestAnimationFrame(() => { frames.delete(id); if (!disposed) fn() })
+      frames.add(id)
+    }
+    const clearWork = () => {
+      timers.forEach(clearTimeout)
+      frames.forEach(cancelAnimationFrame)
+      controls.forEach(control => control.stop())
+      timers.clear(); frames.clear(); controls.clear()
+    }
+    const restoreFocus = () => {
+      const active = document.activeElement
+      if (active !== overlayRef.current && active !== document.body && active?.isConnected) return
+      const unchanged = window.location.pathname === sourcePath
+      const target = unchanged && previousFocus?.isConnected
+        ? previousFocus : document.querySelector<HTMLElement>("main, [role='main']")
+      if (!target) return
+      const tabindex = target.getAttribute("tabindex")
+      if (tabindex === null) target.setAttribute("tabindex", "-1")
+      target.focus({ preventScroll: true })
+      if (tabindex === null) target.removeAttribute("tabindex")
+    }
+    const finish = () => {
+      if (disposed) return
+      phase = "idle"
+      setView(IDLE)
+      restoreFocus()
+    }
+    const uncover = (launch: boolean) => {
+      if (phase === "idle" || phase === "reveal") return
+      clearWork()
+      phase = "reveal"
+      // Preserve the original contract: page intros resume as reveal starts.
+      setCovered(false)
+      if (!launch) setView(v => ({ ...v, green: false, count: 0, status: "" }))
+      const duration = reduced.matches ? 0 : TIMING.reveal
+      controls.add(animate(lift, launch ? -64 : 0, { duration, ease: EASE }))
+      const fade = animate(opacity, 0, { duration, ease: EASE })
+      controls.add(fade)
+      void fade.then(() => { if (!disposed && phase === "reveal") finish() })
+    }
+    const release = () => {
+      if (phase !== "load" || !ready || queued) return
+      queued = true
+      later(() => {
+        // Give the committed route a paint opportunity; not an asset-ready signal.
+        frame(() => frame(() => {
+          if (phase !== "load") return
+          phase = "green"
+          setView(v => ({ ...v, green: true, status: "GO — FULL SEND" }))
+          later(() => uncover(true), TIMING.green)
+        }))
+      }, Math.max(0, TIMING.minimum - (performance.now() - startedAt)))
+    }
+    committedRef.current = () => {
+      if (phase === "cover" || phase === "load") { ready = true; release() }
+    }
+    const start = (href: string, historyNavigation = false) => {
+      if (phase !== "idle") return
+      phase = "cover"
+      ready = historyNavigation
+      queued = false
+      sourcePath = window.location.pathname
+      startedAt = performance.now()
+      previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      opacity.jump(0); lift.jump(0)
+      setCovered(true)
+      setView({ active: true, count: 0, green: false, status: "ARMING START SEQUENCE" })
+      frame(() => overlayRef.current?.focus({ preventScroll: true }))
+      later(() => uncover(false), TIMING.failsafe)
+      const cover = animate(opacity, 1, { duration: TIMING.cover, ease: "easeOut" })
+      controls.add(cover)
+      for (let count = 1; count <= 5; count++) {
+        later(() => {
+          if (phase !== "cover") return
+          setView(v => ({ ...v, count, status: count === 5 ? "HOLD — READY TO RACE" : "ARMING START SEQUENCE" }))
+          if (count !== 5) return
+          // Both all-red and opaque coverage must complete before router.push.
+          void cover.then(() => {
+            if (disposed || phase !== "cover") return
+            phase = "load"
+            if (!historyNavigation) {
+              try { router.push(href) } catch { uncover(false); return }
+            }
+            release()
+          })
+        }, TIMING.step * count)
+      }
+    }
+
+    const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+      const anchor = event.composedPath().find(node => node instanceof HTMLAnchorElement)
+      if (!(anchor instanceof HTMLAnchorElement) || !anchor.href) return
+      if (anchor.closest('[data-page-transition="off"]') || anchor.hasAttribute("download") || anchor.relList.contains("external")) return
+      if (anchor.target && anchor.target !== "_self") return
+      const url = new URL(anchor.href, window.location.href)
+      if (!/^https?:$/.test(url.protocol) || url.origin !== window.location.origin) return
+      if (url.pathname === window.location.pathname || SKIP.has(normalize(url.pathname)) || reduced.matches) return
+      event.preventDefault()
+      // Do not stop propagation: analytics and link handlers still receive the event.
+      // Custom handlers that navigate independently must opt out using the data attribute.
+      if (phase === "idle") start(url.pathname + url.search + url.hash)
+    }
+    const onPopState = () => {
+      if (reduced.matches || SKIP.has(normalize(window.location.pathname))) {
+        if (phase !== "idle") uncover(false)
+        return
+      }
+      // History has already navigated; this is a cosmetic sequence, not a route gate.
+      if (phase === "idle") start(window.location.href, true)
+      else if (phase === "cover" || phase === "load") uncover(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (phase === "idle" || event.key !== "Tab") return
+      event.preventDefault()
+      overlayRef.current?.focus({ preventScroll: true })
     }
     document.addEventListener("click", onClick, true)
-    return () => document.removeEventListener("click", onClick, true)
-  })
+    document.addEventListener("keydown", onKeyDown, true)
+    window.addEventListener("popstate", onPopState)
+    return () => {
+      disposed = true
+      clearWork()
+      committedRef.current = null
+      document.removeEventListener("click", onClick, true)
+      document.removeEventListener("keydown", onKeyDown, true)
+      window.removeEventListener("popstate", onPopState)
+      setCovered(false)
+    }
+  }, [router, opacity, lift])
 
-  useEffect(() => () => window.clearTimeout(failsafe.current), [])
+  useEffect(() => { committedRef.current?.() }, [pathname])
 
   return (
-    <div aria-hidden className="fixed inset-0 z-[95]" style={{ visibility: active ? "visible" : "hidden", pointerEvents: active ? "auto" : "none" }}>
-      <motion.div className="absolute inset-0 bg-background" style={{ opacity: dark }} />
-      <motion.div className="absolute inset-0 bg-accent" style={{ clipPath, WebkitClipPath: clipPath }} />
-    </div>
+    <>
+      <span className={styles.srOnly} role="status" aria-live="polite" aria-atomic="true">
+        {view.active ? "Opening page. Please wait." : ""}
+      </span>
+      <div
+        ref={overlayRef}
+        className={styles.overlay}
+        tabIndex={-1}
+        role="group"
+        aria-label="Page transition"
+        aria-hidden={!view.active}
+        style={{ visibility: view.active ? "visible" : "hidden", pointerEvents: view.active ? "auto" : "none" }}
+      >
+        <motion.div className={styles.backdrop} style={{ opacity }} aria-hidden="true" />
+        <motion.div
+          className={styles.scene}
+          data-green={view.green ? "true" : "false"}
+          style={{ opacity, y: lift }}
+          aria-hidden="true"
+        >
+          <div className={styles.ambient} />
+          <div className={styles.track}><i /><i /><i /><i /></div>
+          <div className={styles.assembly}>
+            <div className={styles.topline}>
+              <span className={styles.brand}>TEAM MECKARTANS</span>
+              <span className={styles.discipline}>KARTING / ENGINEERING / RACING</span>
+            </div>
+            <div className={styles.beam}>
+              <span className={styles.beamRule} />
+            </div>
+            <div className={styles.mounts}><i /><i /><i /></div>
+            <div className={styles.panel}>
+              <span className={`${styles.bolt} ${styles.boltTL}`} />
+              <span className={`${styles.bolt} ${styles.boltTR}`} />
+              <span className={`${styles.bolt} ${styles.boltBL}`} />
+              <span className={`${styles.bolt} ${styles.boltBR}`} />
+              <div className={styles.panelHeader}>
+                <span>GRID CONTROL</span>
+                <span className={styles.system}><i /> {view.green ? "RELEASED" : "SEQUENCE ACTIVE"}</span>
+              </div>
+              <div className={styles.signals}>
+                {[1, 2, 3, 4, 5].map(index => (
+                  <div className={styles.module} key={index} data-on={view.count >= index ? "true" : "false"} data-green={view.green ? "true" : "false"}>
+                    <span className={styles.number}>0{index}</span>
+                    <div className={styles.hood}>
+                      <div className={styles.bezel}>
+                        <div className={styles.lens}>
+                          <div className={`${styles.leds} ${styles.offLEDs}`} />
+                          <div className={`${styles.leds} ${styles.redLEDs}`} />
+                          <div className={`${styles.leds} ${styles.greenLEDs}`} />
+                          <div className={styles.optics} />
+                          <div className={styles.glass} />
+                        </div>
+                      </div>
+                    </div>
+                    <span className={styles.moduleTick} />
+                  </div>
+                ))}
+              </div>
+              <div className={styles.panelFooter}><span>BUILT BY HAND.</span><span className={styles.checkers} /><span>RUN AT SPEED.</span></div>
+            </div>
+            <div className={styles.status}>
+              <span className={styles.statusDot} />
+              <span>{view.status || "ARMING START SEQUENCE"}</span>
+              <span className={styles.statusCount}>{view.green ? "GO" : `${String(view.count).padStart(2, "0")} / 05`}</span>
+            </div>
+            <div className={styles.caption}>FROM THE WORKSHOP TO THE STARTING GRID.</div>
+          </div>
+          <div className={styles.lowerMark}><span>MECHANICAL BY DESIGN</span><span className={styles.lowerLine} /><span>COMPETITIVE BY NATURE</span></div>
+        </motion.div>
+      </div>
+    </>
   )
 }

@@ -3,3 +3,9 @@ node_modules
 out
 next-env.d.ts
 *.tsbuildinfo
+
+# Ideas sandbox junctions and build caches
+ideas/**/node_modules
+ideas/**/public
+ideas/**/.next
+*.zip
