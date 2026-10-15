@@ -43,24 +43,15 @@ body {
 :focus-visible { outline: 2px solid var(--ds-color-ring); outline-offset: 3px; }
 img, video { display: block; }
 
-/* Custom motorsport kart cursor (desktop fine pointer only) */
+/* HUD reticle cursor (components/hud-cursor.tsx draws it). The class is only added once that component mounts, so
+   without JS the system cursor stays. Text entry keeps the native I-beam: keep this selector in step with TEXT there. */
 @media (hover: hover) and (pointer: fine) {
-  html,
-  body,
-  input,
-  select,
-  textarea {
-    cursor: url('/media/cursor-kart-32.png') 4 4, auto;
+  html.hud-cursor,
+  html.hud-cursor * {
+    cursor: none !important;
   }
-
-  a,
-  button,
-  [role="button"],
-  [role="tab"],
-  [role="link"],
-  .cursor-pointer,
-  summary {
-    cursor: url('/media/cursor-kart-hover-32.png') 4 4, pointer !important;
+  html.hud-cursor :is(textarea, [contenteditable="true"], input:not([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="color"])) {
+    cursor: text !important;
   }
 }
 

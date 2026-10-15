@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Archivo, Barlow_Condensed, IBM_Plex_Mono } from "next/font/google"
 
 import { Footer } from "@/components/footer"
+import { HudCursor } from "@/components/hud-cursor"
 import { Nav } from "@/components/nav"
 import { PageTransition } from "@/components/page-transition"
 import { RouteScroll, SmoothScroll } from "@/components/smooth-scroll"
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Footer />
           <RouteScroll />
           <PageTransition />
+          <HudCursor />
         </SmoothScroll>
       </body>
     </html>
