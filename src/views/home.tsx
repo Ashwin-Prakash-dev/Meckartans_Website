@@ -112,9 +112,8 @@ function Hero() {
       </div>
 
       {/* page shortcuts (brief: "small text and shortcuts to all pages") */}
-      {/* Pinned to the viewport's left edge, 1536px+ only: narrower, it collides with the one-line title (the navbar has the same links). */}
-      <div className="h-side pointer-events-none absolute left-12 top-1/2 z-10 hidden -translate-y-1/2 2xl:block">
-        <div>
+      <div className="h-side pointer-events-none absolute inset-x-0 top-1/2 z-10 hidden -translate-y-1/2 xl:block">
+        <div className="mx-auto w-full max-w-[1500px] px-5 sm:px-8">
           <nav aria-label="Sections" className="pointer-events-auto w-fit">
             <ol className="h-index flex flex-col gap-3 border-l border-foreground/25 pl-6">
               {NAV.map((n, i) => (

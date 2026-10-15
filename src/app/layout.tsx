@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Archivo, Roboto_Mono } from "next/font/google"
+import { JetBrains_Mono, Plus_Jakarta_Sans, Teko } from "next/font/google"
 
 import { Footer } from "@/components/footer"
 import { Nav } from "@/components/nav"
@@ -8,10 +8,9 @@ import { RouteScroll, SmoothScroll } from "@/components/smooth-scroll"
 
 import "./globals.css"
 
-// Same families/axes the Vite build loaded from Google Fonts, self-hosted by next/font.
-// Tokens reference these variables (tokens.json -> --font-archivo / --font-roboto-mono).
-const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], style: ["normal", "italic"], variable: "--font-archivo", display: "swap" })
-const robotoMono = Roboto_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-roboto-mono", display: "swap" })
+const teko = Teko({ subsets: ["latin"], variable: "--font-teko", display: "swap" })
+const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-plus-jakarta-sans", display: "swap" })
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" })
 
 export const metadata: Metadata = {
   title: { default: "Team Meckartans | SCTCE Student Motorsport", template: "%s | Team Meckartans" },
@@ -28,7 +27,7 @@ const FOUC_GUARD = `(function(){var d=document.documentElement;d.classList.add("
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${archivo.variable} ${robotoMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`dark ${teko.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: FOUC_GUARD }} />
       </head>
