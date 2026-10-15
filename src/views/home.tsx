@@ -30,33 +30,63 @@ const SLIDES: ({ kind: "video" } | { kind: "photo"; src: string; pos?: string })
 ]
 const SLIDE_MS = 7000
 
+const SHORTCUT_IMG: Record<string, string> = {
+  "/about": "/media/hero/about.webp",
+  "/team": "/media/hero/team.webp",
+  "/gallery": "/media/gallery-reel-poster.jpg",
+  "/garage": "/media/hero/garage.webp",
+  "/achievements": "/media/hero/achievements.webp",
+  "/support": "/media/hero/support.webp",
+  "#contact": "/media/hero/band-track.webp",
+}
+
+
 function Hero() {
   const root = useRef<HTMLElement>(null)
   const video = useRef<HTMLVideoElement>(null)
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
+  const [hoveredNav, setHoveredNav] = useState<number | null>(null)
+  const [indicator, setIndicator] = useState<{ top: number; height: number; opacity: number }>({ top: 0, height: 0, opacity: 0 })
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([])
   const goContact = useGoContact()
   const [src, setSrc] = useState<string | undefined>()
   useEffect(() => setSrc(window.matchMedia("(max-width: 767px)").matches ? "/media/hero-720.mp4" : "/media/hero-1080.mp4"), [])
 
   // advance; reduced motion = no autoplay (manual dots only)
   useEffect(() => {
-    if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    if (paused || hoveredNav !== null || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
     const id = window.setTimeout(() => setActive((a) => (a + 1) % SLIDES.length), SLIDE_MS)
     return () => window.clearTimeout(id)
-  }, [active, paused])
+  }, [active, paused, hoveredNav])
 
-  // video plays only while it is the visible slide and the hero is on screen
+  // video plays only while it is the visible slide, hero is on screen, and no nav item preview is hovered
   useEffect(() => {
     const v = video.current
     if (!v) return
     const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && active === 0 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) v.play().catch(() => {})
+      if (e.isIntersecting && active === 0 && hoveredNav === null && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) v.play().catch(() => {})
       else v.pause()
     })
     io.observe(v)
     return () => io.disconnect()
-  }, [active, src])
+  }, [active, src, hoveredNav])
+
+  // update sliding indicator on left index rail
+  useEffect(() => {
+    if (hoveredNav !== null && itemRefs.current[hoveredNav]) {
+      const el = itemRefs.current[hoveredNav]
+      if (el) {
+        setIndicator({
+          top: el.offsetTop,
+          height: el.offsetHeight,
+          opacity: 1,
+        })
+      }
+    } else {
+      setIndicator((prev) => ({ ...prev, opacity: 0 }))
+    }
+  }, [hoveredNav])
 
   // after a route transition, the intro waits for the overlay to open (lib/page-transition.ts)
   useGSAP(
@@ -69,7 +99,7 @@ function Hero() {
               .timeline({ defaults: { ease: EASE } })
               .from(".h-media", { opacity: 0, scale: 1.1, duration: 2.6, ease: "power2.out" }, 0)
               .from(".h-logo", { opacity: 0, y: 20, scale: 0.9, duration: 1.2 }, 0.3)
-              .from(".h-title", { opacity: 0, letterSpacing: "0.4em", duration: 1.8 }, 0.45)
+              .from(".h-title", { opacity: 0, letterSpacing: "0.22em", duration: 1.8 }, 0.45)
               .from(".h-fade", { opacity: 0, y: 18, duration: 1, stagger: 0.1 }, 1)
               .from(".h-cta-line", { scaleX: 0, duration: 1.2, ease: "power3.inOut", stagger: 0.1 }, 1.1)
               .from(".h-index li", { opacity: 0, x: -14, duration: 0.8, stagger: 0.06 }, 1.2)
@@ -106,30 +136,87 @@ function Hero() {
             )}
           </div>
         ))}
+
+        {/* index hover preview overlay */}
+        {NAV.map((n, i) => {
+          const imgSrc = SHORTCUT_IMG[n.to]
+          if (!imgSrc) return null
+          const isCurrent = hoveredNav === i
+          return (
+            <div
+              key={n.to}
+              className={cn(
+                "absolute inset-0 transition-all duration-700 ease-out",
+                isCurrent ? "opacity-100 scale-100" : "pointer-events-none opacity-0 scale-105"
+              )}
+            >
+              <img src={imgSrc} alt="" className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-background/55 backdrop-blur-[1px]" />
+              <div className="photo-scrim absolute inset-0" />
+            </div>
+          )
+        })}
+
         <div className="absolute inset-0 bg-background/50" />
         <div className="photo-scrim absolute inset-0" />
         <div className="h-dim absolute inset-0 bg-background opacity-0" />
       </div>
 
-      {/* page shortcuts (brief: "small text and shortcuts to all pages") */}
-      {/* Pinned to the viewport's left edge, 1536px+ only: narrower, it collides with the one-line title (the navbar has the same links). */}
-      <div className="h-side pointer-events-none absolute left-12 top-1/2 z-10 hidden -translate-y-1/2 2xl:block">
+      {/* page shortcuts / index navigation */}
+      <div className="h-side pointer-events-none absolute left-6 2xl:left-12 top-1/2 z-20 hidden -translate-y-1/2 xl:block">
         <div>
           <nav aria-label="Sections" className="pointer-events-auto w-fit">
-            <ol className="h-index flex flex-col gap-3 border-l border-foreground/25 pl-6">
-              {NAV.map((n, i) => (
-                <li key={n.label} className="group relative">
-                  {n.to.startsWith("#") ? (
-                    <a href="#contact" onClick={goContact} className="block">
-                      <IndexItem n={i} label={n.label} blurb={n.blurb} />
-                    </a>
-                  ) : (
-                    <Link href={n.to} className="block">
-                      <IndexItem n={i} label={n.label} blurb={n.blurb} />
-                    </Link>
-                  )}
-                </li>
-              ))}
+            <ol
+              className="h-index relative flex flex-col gap-3.5 border-l border-foreground/20 pl-6"
+              onMouseLeave={() => setHoveredNav(null)}
+            >
+              {/* Dynamic sliding red rail indicator */}
+              <div
+                className="pointer-events-none absolute -left-[1.5px] w-[3px] rounded-full bg-accent transition-all duration-300 ease-(--ease-out-expo)"
+                style={{
+                  top: indicator.top,
+                  height: indicator.height > 0 ? indicator.height : 26,
+                  opacity: indicator.opacity,
+                }}
+              />
+              {NAV.map((n, i) => {
+                const isHovered = hoveredNav === i
+                const isAnyHovered = hoveredNav !== null
+                return (
+                  <li
+                    key={n.label}
+                    ref={(el) => {
+                      itemRefs.current[i] = el
+                    }}
+                    onMouseEnter={() => setHoveredNav(i)}
+                    onFocus={() => setHoveredNav(i)}
+                    onBlur={() => setHoveredNav(null)}
+                    className="group relative cursor-pointer"
+                  >
+                    {n.to.startsWith("#") ? (
+                      <a href="#contact" onClick={goContact} className="block">
+                        <IndexItem
+                          n={i}
+                          label={n.label}
+                          blurb={n.blurb}
+                          isHovered={isHovered}
+                          isAnyHovered={isAnyHovered}
+                        />
+                      </a>
+                    ) : (
+                      <Link href={n.to} className="block">
+                        <IndexItem
+                          n={i}
+                          label={n.label}
+                          blurb={n.blurb}
+                          isHovered={isHovered}
+                          isAnyHovered={isAnyHovered}
+                        />
+                      </Link>
+                    )}
+                  </li>
+                )
+              })}
             </ol>
           </nav>
         </div>
@@ -138,10 +225,10 @@ function Hero() {
       {/* centre copy */}
       <div className="h-content relative z-10 mx-auto flex h-full max-w-5xl flex-col items-center justify-center px-6 pt-10 text-center">
         <img src="/media/brand/logo-light.png" alt="" width={605} height={449} className="h-logo h-24 w-auto sm:h-32" />
-        <h1 className="h-title mt-6 font-display text-[2.1rem] font-normal uppercase leading-[1.1] tracking-[0.12em] sm:text-[clamp(2.5rem,4.4vw,4.5rem)] sm:tracking-[0.16em]">
+        <h1 className="h-title mt-6 font-display text-[2.3rem] font-black uppercase leading-[1.0] tracking-[0.05em] sm:text-[clamp(2.75rem,5vw,5rem)] sm:tracking-[0.07em]">
           Team Meckartans
         </h1>
-        <p className="h-fade mt-4 font-display text-sm font-bold uppercase tracking-[0.3em] sm:text-base">
+        <p className="h-fade mt-4 font-display text-base font-bold uppercase tracking-[0.16em] sm:text-lg">
           {SITE.tagline.split(". ").map((t, i, a) => (
             <span key={i} className={i === a.length - 1 ? "text-accent" : ""}>
               {t}
@@ -150,9 +237,9 @@ function Hero() {
           ))}
         </p>
         <p className="h-fade mt-6 max-w-xl text-[15px] leading-relaxed text-foreground/85 sm:text-[17px]">{SITE.intro}</p>
-        <Link href="/about" className="group relative mt-10 flex h-14 w-[min(17rem,80vw)] items-center justify-center font-display text-[13px] font-medium uppercase tracking-[0.3em]">
+        <Link href="/about" className="group relative mt-10 flex h-14 w-[min(17rem,80vw)] items-center justify-center font-sans text-xs font-bold uppercase tracking-[0.2em]">
           <span className="h-cta-line absolute inset-x-0 top-0 h-px bg-foreground/60 transition-colors duration-500 group-hover:bg-accent" aria-hidden />
-          <span className="transition-[letter-spacing] duration-500 ease-(--ease-out-expo) group-hover:tracking-[0.42em]">Discover</span>
+          <span className="transition-[letter-spacing] duration-500 ease-(--ease-out-expo) group-hover:tracking-[0.32em]">Discover</span>
           <span className="h-cta-line absolute inset-x-0 bottom-0 h-px bg-foreground/60 transition-colors duration-500 group-hover:bg-accent" aria-hidden />
         </Link>
       </div>
@@ -183,17 +270,52 @@ function Hero() {
   )
 }
 
-function IndexItem({ n, label, blurb }: { n: number; label: string; blurb: string }) {
+function IndexItem({
+  n,
+  label,
+  blurb,
+  isHovered,
+  isAnyHovered,
+}: {
+  n: number
+  label: string
+  blurb: string
+  isHovered: boolean
+  isAnyHovered: boolean
+}) {
   return (
-    <>
-      <span className="font-display text-[13px] font-medium uppercase tracking-[0.14em] text-foreground/60 transition-colors group-hover:text-foreground">
-        <span className="mr-2 text-accent">0{n + 1}</span>
-        {label}
+    <div
+      className={cn(
+        "transition-all duration-300 ease-(--ease-out-expo)",
+        isHovered && "translate-x-1.5",
+        isAnyHovered && !isHovered && "opacity-35"
+      )}
+    >
+      <span
+        className={cn(
+          "flex items-baseline gap-2 font-display text-sm uppercase tracking-[0.08em] transition-colors duration-200",
+          isHovered ? "font-black text-foreground" : "font-bold text-foreground/75"
+        )}
+      >
+        <span
+          className={cn(
+            "font-mono text-xs transition-colors duration-200",
+            isHovered ? "font-bold text-accent drop-shadow-[0_0_8px_rgba(229,32,46,0.6)]" : "text-accent"
+          )}
+        >
+          0{n + 1}
+        </span>
+        <span>{label}</span>
       </span>
-      <span className="block max-h-0 overflow-hidden text-xs text-muted-foreground opacity-0 transition-all duration-500 group-hover:max-h-6 group-hover:opacity-100">
+      <span
+        className={cn(
+          "block overflow-hidden font-mono text-[11px] leading-snug tracking-wider text-muted-foreground transition-all duration-300 ease-(--ease-out-expo)",
+          isHovered ? "mt-1 max-h-12 opacity-100 text-foreground/80" : "max-h-0 opacity-0"
+        )}
+      >
         {blurb}
       </span>
-    </>
+    </div>
   )
 }
 
@@ -311,15 +433,6 @@ function MkStrip() {
 }
 
 /* ------------------------------------------------------------------ page */
-const SHORTCUT_IMG: Record<string, string> = {
-  "/about": "/media/hero/about.webp",
-  "/team": "/media/hero/team.webp",
-  "/gallery": "/media/gallery-reel-poster.jpg",
-  "/garage": "/media/hero/garage.webp",
-  "/achievements": "/media/hero/achievements.webp",
-  "/support": "/media/hero/support.webp",
-}
-
 export default function Home() {
   const main = useRef<HTMLDivElement>(null)
   const introPhoto = useRef<HTMLImageElement>(null)

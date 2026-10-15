@@ -40,15 +40,11 @@
 
 ### Typography
 
-- **Heading Font:** Exo
-- **Body Font:** Roboto Mono
-- **Mood:** science, technology, research, data, futuristic, precise
-- **Google Fonts:** [Exo + Roboto Mono](https://fonts.googleapis.com/css2?family=Exo:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500;700&display=swap)
-
-**CSS Import:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Exo:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500;700&display=swap');
-```
+- **Heading Font:** Barlow Condensed (700–900)
+- **Body Font:** Archivo (400–700)
+- **Technical Accents:** IBM Plex Mono (400, 500)
+- **Mood:** premium motorsport engineering, bold vehicle titles, precise telemetry, disciplined typography
+- **Google Fonts:** Barlow Condensed + Archivo + IBM Plex Mono (self-hosted via Next.js `next/font/google`)
 
 ### Spacing Variables
 
