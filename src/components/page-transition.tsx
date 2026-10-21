@@ -1,114 +1,241 @@
 "use client"
 
-// Route transition, after Motion's "Loading overlay" line reveal (motion.dev/examples/react-loading-line-reveal),
-// in the team red instead of the example's magenta.
-//   cover:  the red sheet closes in from both edges over the current page
-//   load:   a thin dark line grows from the centre while the next route loads (a spring follows the load progress)
-//   reveal: the line splits open sideways onto the new page (ease-out-quart, timed from the example)
-// One red sheet does all three: its clip-path is the screen minus a centred rectangular hole (evenodd polygon), so
-// the line *is* the hole, with a dark layer under it until the reveal.
-// Links are intercepted in the capture phase. preventDefault() stops next/link's own navigation (it runs the link's
-// onClick, then bails on defaultPrevented), and the route is pushed once the screen is covered. Same-page links
-// (#contact, ?v=), links into SKIP routes, new tabs, downloads, external links and reduced motion navigate as before.
-
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { animate, motion, useMotionTemplate, useMotionValue, useMotionValueEvent, useSpring, useTransform, type AnimationPlaybackControls } from "motion/react"
+import { animate, motion, useMotionValue, type AnimationPlaybackControls } from "motion/react"
 
+import { useLenis } from "@/components/smooth-scroll"
 import { setCovered } from "@/lib/page-transition"
 
-const EASE_IN_OUT = [0.65, 0, 0.35, 1] as const // --ds-motion-ease-in-out
-const EASE_OUT_QUART = [0.25, 1, 0.5, 1] as const
-const LINE = 1.5 // half the line's width, px
-const MIN_LOAD_MS = 250 // the line always gets this long to grow, however fast the route arrives
-const FAILSAFE_MS = 8000 // reveal anyway if the route never commits
-// Routes this transition never runs into. /about has its own entrance from the home page's "About the team" link
-// (the intro photo grows into its hero: lib/hero-morph.ts); every other way in is a plain navigation.
+const EASE = [0.76, 0, 0.24, 1] as const
+const FAILSAFE_MS = 8000
+const MIN_HOLD_MS = 600
+const REVEAL_MS = 700
 const SKIP = new Set(["/about"])
 
 type Phase = "idle" | "cover" | "load" | "reveal"
+type Props = {
+  /** Number of telemetry streaks in the center band. Clamped to 3–16. */
+  lineCount?: number
+  /** Streak travel time range in seconds across the viewport. Clamped to 0.6–1.1. */
+  travelSpeedRange?: readonly [number, number]
+}
 
-export function PageTransition() {
+const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
+
+export function PageTransition({ lineCount = 9, travelSpeedRange = [0.6, 1.1] }: Props) {
   const router = useRouter()
   const pathname = usePathname()
+  const lenis = useLenis()
+  const count = clamp(Math.round(Number.isFinite(lineCount) ? lineCount : 9), 3, 16)
+  const requestedSpeedRange = travelSpeedRange.every(Number.isFinite) ? travelSpeedRange : [0.6, 1.1] as const
+  const speedMin = clamp(Math.min(...requestedSpeedRange), 0.6, 1.1)
+  const speedMax = clamp(Math.max(...requestedSpeedRange), speedMin, 1.1)
+  const streaks = useMemo(() => Array.from({ length: count }, (_, i) => {
+    const length = 120 + ((i * 47 + 31) % 181)
+    const duration = speedMin + ((i * 17 + 3) % 51) / 50 * (speedMax - speedMin)
+    return {
+      left: `${((i * 37 + 11) % 100)}%`,
+      top: `${12 + ((i * 29 + 7) % 76)}%`,
+      width: `${length}px`,
+      opacity: 0.5 + ((i * 13) % 31) / 100,
+      animationDuration: `${duration}s`,
+      animationDelay: `${-((i * 19 + 3) % 100) / 100 * duration}s`,
+      background: i % 4 === 0 ? "var(--ds-color-accent)" : "var(--ds-color-foreground)",
+    }
+  }), [count, speedMin, speedMax])
+
   const [active, setActive] = useState(false)
+  const [phaseView, setPhaseView] = useState<Phase>("idle")
+  const [reduced, setReduced] = useState(false)
+  const [logoPulsing, setLogoPulsing] = useState(false)
   const phase = useRef<Phase>("idle")
+  const startPath = useRef("")
   const arrived = useRef(false)
   const loadStart = useRef(0)
-  const creep = useRef<AnimationPlaybackControls | null>(null)
-  const failsafe = useRef(0)
-
-  // half-size of the hole in px, centred on the screen
-  const holeX = useMotionValue(0)
-  const holeY = useMotionValue(0)
-  const dark = useMotionValue(0)
+  const controls = useRef<AnimationPlaybackControls[]>([])
+  const failsafe = useRef<number | null>(null)
+  const arrivalTimer = useRef<number | null>(null)
+  const introTimer = useRef<number | null>(null)
   const progress = useMotionValue(0)
-  const loaded = useSpring(progress, { stiffness: 220, damping: 30, restDelta: 0.001 })
+  const root = useRef<HTMLDivElement>(null)
+  const top = useRef<HTMLDivElement>(null)
+  const bottom = useRef<HTMLDivElement>(null)
+  const band = useRef<HTMLDivElement>(null)
+  const logo = useRef<HTMLImageElement>(null)
+  const reducedScreen = useRef<HTMLDivElement>(null)
+  const lenisWasStopped = useRef(false)
+  const lenisRef = useRef(lenis)
+  lenisRef.current = lenis
 
-  const x = useTransform(holeX, (v) => v.toFixed(2))
-  const y = useTransform(holeY, (v) => v.toFixed(2))
-  const clipPath = useMotionTemplate`polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, calc(50% - ${x}px) calc(50% - ${y}px), calc(50% + ${x}px) calc(50% - ${y}px), calc(50% + ${x}px) calc(50% + ${y}px), calc(50% - ${x}px) calc(50% + ${y}px), calc(50% - ${x}px) calc(50% - ${y}px))`
+  const keep = (control: AnimationPlaybackControls) => {
+    controls.current.push(control)
+    return control
+  }
+  const stopAnimations = () => {
+    const running = controls.current.splice(0)
+    running.forEach((control) => control.stop())
+  }
+  const resetVisualState = () => {
+    if (top.current) {
+      top.current.style.transform = "translateY(-110%)"
+      top.current.style.opacity = "1"
+    }
+    if (bottom.current) {
+      bottom.current.style.transform = "translateY(110%)"
+      bottom.current.style.opacity = "1"
+    }
+    if (band.current) {
+      band.current.style.transform = "scaleX(0) scaleY(1)"
+      band.current.style.opacity = "1"
+    }
+    if (logo.current) {
+      logo.current.style.transform = "scale(.9)"
+      logo.current.style.opacity = "0"
+    }
+    if (reducedScreen.current) reducedScreen.current.style.opacity = "0"
+    progress.jump(0)
+    setLogoPulsing(false)
+  }
+  const clearTimers = () => {
+    if (failsafe.current) window.clearTimeout(failsafe.current)
+    if (arrivalTimer.current) window.clearTimeout(arrivalTimer.current)
+    if (introTimer.current) window.clearTimeout(introTimer.current)
+    failsafe.current = arrivalTimer.current = introTimer.current = null
+  }
+  const lock = () => {
+    document.documentElement.classList.add("page-transition-active")
+    lenisWasStopped.current = Boolean(lenis?.isStopped)
+    if (lenis && !lenisWasStopped.current) lenis.stop()
+  }
+  const unlock = () => {
+    document.documentElement.classList.remove("page-transition-active")
+    if (lenis && !lenisWasStopped.current) lenis.start()
+  }
+  const interruptToCommittedRoute = () => {
+    clearTimers()
+    stopAnimations()
+    resetVisualState()
+    phase.current = "idle"
+    setPhaseView("idle")
+    setActive(false)
+    setCovered(false)
+    unlock()
+  }
+
+  const finish = () => {
+    if (phase.current !== "load" || arrived.current) return
+    if (arrivalTimer.current) window.clearTimeout(arrivalTimer.current)
+    arrivalTimer.current = null
+    const remaining = Math.max(0, MIN_HOLD_MS - (performance.now() - loadStart.current))
+    arrivalTimer.current = window.setTimeout(() => {
+      if (phase.current !== "load" || arrived.current) return
+      arrived.current = true
+      keep(animate(progress, 1, { duration: 0.2, ease: "easeOut" })).finished.then(reveal).catch(() => {})
+    }, remaining)
+  }
 
   const reveal = () => {
+    if (phase.current !== "load") return
+    // The load progress animation is still alive when the route commits. Stop it
+    // before the reveal owns the motion values and overlay elements.
+    stopAnimations()
     phase.current = "reveal"
-    window.clearTimeout(failsafe.current)
-    dark.jump(0)
-    setCovered(false) // the new page's intro plays as it opens
-    const opts = { duration: 0.8, delay: 0.07, ease: EASE_OUT_QUART }
-    animate(holeY, window.innerHeight / 2 + 2, opts)
-    animate(holeX, window.innerWidth / 2 + 2, opts).then(() => {
+    setPhaseView("reveal")
+    setLogoPulsing(false)
+    if (failsafe.current) window.clearTimeout(failsafe.current)
+    failsafe.current = null
+    introTimer.current = window.setTimeout(() => setCovered(false), reduced ? 0 : 260)
+    const duration = reduced ? 0.28 : REVEAL_MS / 1000
+    const topEl = top.current
+    const bottomEl = bottom.current
+    const bandEl = band.current
+    const logoEl = logo.current
+    const simpleScreen = reducedScreen.current
+    const exiting = [
+      topEl && keep(animate(topEl, { y: "-110%", opacity: reduced ? 0 : 1 }, { duration, ease: EASE })),
+      bottomEl && keep(animate(bottomEl, { y: "110%", opacity: reduced ? 0 : 1 }, { duration, ease: EASE })),
+      bandEl && keep(animate(bandEl, { scaleY: [1, 0], opacity: reduced ? 0 : 1 }, { duration: reduced ? 0.2 : duration, ease: EASE })),
+      logoEl && keep(animate(logoEl, { opacity: 0, scale: 0.9 }, { duration: 0.18, ease: "easeOut" })),
+      simpleScreen && keep(animate(simpleScreen, { opacity: 0 }, { duration: 0.28, ease: "easeOut" })),
+    ].filter(Boolean) as AnimationPlaybackControls[]
+    Promise.all(exiting.map((control) => control.finished)).then(() => {
+      if (phase.current !== "reveal") return
       phase.current = "idle"
+      setPhaseView("idle")
+      resetVisualState()
       setActive(false)
-    })
+      unlock()
+    }).catch(() => {})
   }
 
-  // load phase: the line's height follows the progress spring; full height + route committed = open
-  useMotionValueEvent(loaded, "change", (v) => {
-    if (phase.current !== "load") return
-    holeY.set((v * window.innerHeight) / 2)
-    if (arrived.current && v > 0.995) reveal()
-  })
-
-  const arrive = () => {
-    if (phase.current !== "load" || arrived.current) return
-    window.setTimeout(() => {
-      creep.current?.stop()
-      arrived.current = true
-      progress.set(1)
-    }, Math.max(0, MIN_LOAD_MS - (performance.now() - loadStart.current)))
-  }
-
-  const start = (href: string) => {
+  const startLoad = (href: string) => {
+    stopAnimations()
+    resetVisualState()
+    startPath.current = pathname
     phase.current = "cover"
+    setPhaseView("cover")
     arrived.current = false
+    setLogoPulsing(false)
     setCovered(true)
-    holeX.jump(window.innerWidth / 2 + 2)
-    holeY.jump(window.innerHeight / 2 + 2)
-    dark.jump(0)
+    lock()
     progress.jump(0)
-    loaded.jump(0)
     setActive(true)
-
-    animate(holeX, 0, { duration: 0.35, ease: EASE_IN_OUT }).then(() => {
-      // covered: swap the hole for a zero-height line over the dark layer, then load
-      holeY.jump(0)
-      holeX.jump(LINE)
-      dark.jump(1)
+    const topEl = top.current
+    const bottomEl = bottom.current
+    const bandEl = band.current
+    const logoEl = logo.current
+    const cover = async () => {
+      if (reduced) {
+        if (reducedScreen.current) await keep(animate(reducedScreen.current, { opacity: 1 }, { duration: 0.2, ease: "easeOut" })).finished.catch(() => {})
+        if (phase.current !== "cover") return
+        phase.current = "load"
+        setPhaseView("load")
+        loadStart.current = performance.now()
+        keep(animate(progress, [0, 0.78, 0.9], { duration: 5, times: [0, 0.24, 1], ease: ["easeOut", "linear"] }))
+        router.push(href)
+        failsafe.current = window.setTimeout(finish, FAILSAFE_MS)
+        return
+      }
+      if (topEl && bottomEl) {
+        await Promise.all([
+          keep(animate(topEl, { y: "0%" }, { duration: 0.38, ease: EASE })),
+          keep(animate(bottomEl, { y: "0%" }, { duration: 0.38, ease: EASE })),
+        ].map((control) => control.finished.catch(() => {})))
+      }
+      if (phase.current !== "cover") return
       phase.current = "load"
+      setPhaseView("load")
       loadStart.current = performance.now()
-      // quick to 80%, then a slow crawl while the route is still loading (dev compiles, slow networks)
-      creep.current = animate(progress, [0, 0.8, 0.95], { duration: 5, times: [0, 0.07, 1], ease: ["easeOut", "linear"] })
-      failsafe.current = window.setTimeout(arrive, FAILSAFE_MS)
+      // Explicitly seed both ends of the scale animation. This prevents a
+      // previous reveal's vertical collapse from becoming the next run's start.
+      if (bandEl) await keep(animate(bandEl, { scaleX: [0, 1], scaleY: [1, 1], opacity: [1, 1] }, { duration: 0.3, ease: EASE })).finished.catch(() => {})
+      if (phase.current !== "load") return
+      if (logoEl && !reduced) {
+        keep(animate(logoEl, { opacity: 1, scale: 1 }, { duration: 0.22, delay: 0.06, ease: "easeOut" })).finished.then(() => setLogoPulsing(true)).catch(() => {})
+      }
+      keep(animate(progress, [0, 0.78, 0.9], { duration: 5, times: [0, 0.24, 1], ease: ["easeOut", "linear"] }))
+      // Start routing as soon as the shutters have covered the outgoing page.
       router.push(href)
-    })
+      failsafe.current = window.setTimeout(finish, FAILSAFE_MS)
+    }
+    void cover()
   }
 
-  // the route committed: give it a moment to paint (and RouteScroll to reset the scroll), then finish the line
+  // Observe destination commits. RouteScroll gets 60ms to reset the scroll position before the reveal begins.
   useEffect(() => {
+    if (phase.current === "cover" && pathname !== startPath.current) {
+      interruptToCommittedRoute()
+      return
+    }
     if (phase.current !== "load") return
-    const id = window.setTimeout(arrive, 60)
+    const id = window.setTimeout(finish, 60)
     return () => window.clearTimeout(id)
   }, [pathname])
+
+  useEffect(() => {
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+  }, [])
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -118,20 +245,66 @@ export function PageTransition() {
       if ((a.target && a.target !== "_self") || a.hasAttribute("download")) return
       const url = new URL(a.href, window.location.href)
       if (url.origin !== window.location.origin || url.pathname === window.location.pathname || SKIP.has(url.pathname)) return
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+      if (phase.current !== "idle") return
       e.preventDefault()
-      if (phase.current === "idle") start(url.pathname + url.search + url.hash)
+      startLoad(url.pathname + url.search + url.hash)
     }
     document.addEventListener("click", onClick, true)
     return () => document.removeEventListener("click", onClick, true)
   })
 
-  useEffect(() => () => window.clearTimeout(failsafe.current), [])
+  useEffect(() => () => {
+    clearTimers()
+    controls.current.forEach((control) => control.stop())
+    document.documentElement.classList.remove("page-transition-active")
+    const currentLenis = lenisRef.current
+    if (currentLenis && !lenisWasStopped.current) currentLenis.start()
+    if (phase.current !== "idle") setCovered(false)
+  }, [])
+
+  const panelStyle: CSSProperties = { transform: "translateY(-110%)" }
+  const lowerPanelStyle: CSSProperties = { transform: "translateY(110%)" }
 
   return (
-    <div aria-hidden className="fixed inset-0 z-[95]" style={{ visibility: active ? "visible" : "hidden", pointerEvents: active ? "auto" : "none" }}>
-      <motion.div className="absolute inset-0 bg-background" style={{ opacity: dark }} />
-      <motion.div className="absolute inset-0 bg-accent" style={{ clipPath, WebkitClipPath: clipPath }} />
+    <div
+      ref={root}
+      aria-hidden="true"
+      className="mt-transition fixed inset-0 z-[100]"
+      data-active={active}
+      data-phase={phaseView}
+      data-reduced={reduced}
+      data-logo-pulsing={logoPulsing}
+      style={{ visibility: active ? "visible" : "hidden", pointerEvents: active ? "auto" : "none" }}
+    >
+      <div ref={top} className="mt-shutter mt-shutter-top" style={panelStyle}>
+        <div className="mt-shutter-detail" />
+      </div>
+      <div ref={bottom} className="mt-shutter mt-shutter-bottom" style={lowerPanelStyle}>
+        <div className="mt-shutter-detail" />
+      </div>
+      {reduced && <div ref={reducedScreen} className="mt-reduced-screen" />}
+      <div ref={band} className="mt-center-band" style={{ transform: "scaleX(0)" }}>
+        <div className="mt-band-grid" />
+        <div className="mt-hazard mt-hazard-top" />
+        <div className="mt-hazard mt-hazard-bottom" />
+        {!reduced && <div className="mt-streak-field">{streaks.map((style, i) => <i key={i} style={style} />)}</div>}
+      </div>
+      {!reduced && <div className="mt-dash-ring" />}
+      {!reduced && <div className="mt-logo-anchor">
+        <div className="mt-logo-pulse">
+          <img
+            ref={logo}
+            className="mt-transition-logo"
+            src="/media/brand/logo-light.png"
+            alt=""
+            width={605}
+            height={449}
+            style={{ opacity: 0, transform: "scale(.9)" }}
+          />
+        </div>
+      </div>}
+      {!reduced && <div className="mt-progress-track"><motion.span className="mt-progress-fill" style={{ scaleX: progress }} /></div>}
+      {reduced && <div className="mt-reduced-progress"><motion.span className="mt-progress-fill" style={{ scaleX: progress }} /></div>}
     </div>
   )
 }
