@@ -197,23 +197,25 @@ export function PageTransition({ lineCount = 9, travelSpeedRange = [0.6, 1.1] }:
         failsafe.current = window.setTimeout(finish, FAILSAFE_MS)
         return
       }
+      // Let the black band ignite first, then close the red shutters around it.
+      // The logo comes up during the shutter move to make the cover feel continuous.
+      if (bandEl) await keep(animate(bandEl, { scaleX: [0, 1], scaleY: [1, 1], opacity: [1, 1] }, { duration: 0.3, ease: EASE })).finished.catch(() => {})
+      if (phase.current !== "cover") return
+      if (logoEl) {
+        keep(animate(logoEl, { opacity: 1, scale: 1 }, { duration: 0.22, ease: "easeOut" })).finished
+          .then(() => { if (phase.current === "cover") setLogoPulsing(true) })
+          .catch(() => {})
+      }
       if (topEl && bottomEl) {
         await Promise.all([
           keep(animate(topEl, { y: "0%" }, { duration: 0.38, ease: EASE })),
-          keep(animate(bottomEl, { y: "0%" }, { duration: 0.38, ease: EASE })),
+          keep(animate(bottomEl, { y: "0%" }, { duration: 0.38, delay: 0.055, ease: EASE })),
         ].map((control) => control.finished.catch(() => {})))
       }
       if (phase.current !== "cover") return
       phase.current = "load"
       setPhaseView("load")
       loadStart.current = performance.now()
-      // Explicitly seed both ends of the scale animation. This prevents a
-      // previous reveal's vertical collapse from becoming the next run's start.
-      if (bandEl) await keep(animate(bandEl, { scaleX: [0, 1], scaleY: [1, 1], opacity: [1, 1] }, { duration: 0.3, ease: EASE })).finished.catch(() => {})
-      if (phase.current !== "load") return
-      if (logoEl && !reduced) {
-        keep(animate(logoEl, { opacity: 1, scale: 1 }, { duration: 0.22, delay: 0.06, ease: "easeOut" })).finished.then(() => setLogoPulsing(true)).catch(() => {})
-      }
       keep(animate(progress, [0, 0.78, 0.9], { duration: 5, times: [0, 0.24, 1], ease: ["easeOut", "linear"] }))
       // Start routing as soon as the shutters have covered the outgoing page.
       router.push(href)
@@ -287,7 +289,14 @@ export function PageTransition({ lineCount = 9, travelSpeedRange = [0.6, 1.1] }:
         <div className="mt-band-grid" />
         <div className="mt-hazard mt-hazard-top" />
         <div className="mt-hazard mt-hazard-bottom" />
-        {!reduced && <div className="mt-streak-field">{streaks.map((style, i) => <i key={i} style={style} />)}</div>}
+        {!reduced && <div className="mt-streak-field">{streaks.map((style, i) => <i
+          key={i}
+          style={{
+            ...style,
+            animationDuration: phaseView === "reveal" ? ".58s" : style.animationDuration,
+            animationDirection: i % 3 === 0 ? "reverse" : "normal",
+          }}
+        />)}</div>}
       </div>
       {!reduced && <div className="mt-dash-ring" />}
       {!reduced && <div className="mt-logo-anchor">
