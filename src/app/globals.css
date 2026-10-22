@@ -28,6 +28,9 @@
 }
 
 html { background: var(--ds-color-background); color-scheme: dark; }
+html.page-transition-active { scrollbar-gutter: stable; }
+html.page-transition-active,
+html.page-transition-active body { overflow: hidden !important; }
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 .lenis.lenis-stopped { overflow: hidden; }
@@ -99,6 +102,227 @@ img, video { display: block; }
 
 @keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.08); } }
 @keyframes slidefill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Meckartans' shutter transition. Geometry stays on the compositor; detail stays clipped to the center band. */
+.mt-transition {
+  left: 0;
+  right: auto;
+  width: 100vw;
+  height: 100dvh;
+  transform: none;
+  overflow: hidden;
+  isolation: isolate;
+  background: transparent;
+  contain: paint;
+}
+.mt-shutter {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 52%;
+  overflow: hidden;
+  background-color: var(--ds-color-accent);
+  background-image: repeating-conic-gradient(color-mix(in srgb, var(--ds-color-accent-dim) 28%, transparent) 0% 25%, transparent 0% 50%);
+  background-size: 24px 24px;
+  will-change: transform, opacity;
+}
+.mt-shutter-top {
+  top: -1%;
+  animation: mt-checker-to-center-top 5s linear infinite;
+}
+.mt-shutter-bottom {
+  bottom: -1%;
+  animation: mt-checker-to-center-bottom 5s linear infinite;
+}
+.mt-shutter-detail {
+  position: absolute;
+  inset: 0;
+  opacity: .13;
+  background: radial-gradient(ellipse at 78% 50%, var(--ds-color-accent-dim), transparent 68%);
+  animation: mt-panel-breathe 3.6s ease-in-out infinite alternate;
+}
+.mt-center-band {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  margin-top: calc(-1 * clamp(96px, 13vh, 140px));
+  left: 0;
+  width: 100%;
+  height: clamp(192px, 26vh, 280px);
+  overflow: hidden;
+  transform-origin: 50% 50%;
+  background: #08080A;
+  perspective: 900px;
+  transform-style: preserve-3d;
+  box-shadow: inset 0 1px rgb(255 255 255 / 9%), inset 0 -1px rgb(255 255 255 / 5%), 0 14px 34px rgb(0 0 0 / 32%);
+  will-change: transform;
+  isolation: isolate;
+}
+.mt-center-band::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 12px 8%;
+  pointer-events: none;
+  border: 1px solid rgb(242 242 240 / 7%);
+  box-shadow: inset 0 0 22px rgb(0 0 0 / 28%);
+}
+.mt-center-band::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  transform: translateZ(3px);
+  background: radial-gradient(ellipse 42% 120% at 50% 50%, color-mix(in srgb, var(--ds-color-accent) 12%, transparent), transparent 100%);
+  animation: mt-band-glow 3.8s ease-in-out infinite alternate;
+}
+.mt-band-grid {
+  position: absolute;
+  inset: 0;
+  opacity: .075;
+  background-image: linear-gradient(to right, #8C8F98 1px, transparent 1px), linear-gradient(to bottom, #8C8F98 1px, transparent 1px);
+  background-size: 54px 54px;
+  transform: translateZ(-18px) scale(1.02);
+  animation: mt-grid-drift 26s linear infinite, mt-grid-breathe 4.4s ease-in-out infinite alternate;
+}
+.mt-hazard {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  opacity: .88;
+  background: repeating-linear-gradient(90deg, var(--ds-color-foreground) 0 15px, transparent 15px 25px);
+  background-size: 40px 5px;
+  animation: mt-hazard-forward .4s linear infinite;
+}
+.mt-hazard-top { top: 0; }
+.mt-hazard-bottom { bottom: 0; transform: rotate(180deg); animation-direction: reverse; }
+.mt-streak-field { position: absolute; z-index: 2; inset: 0; overflow: hidden; }
+.mt-streak-field i {
+  position: absolute;
+  height: 3px;
+  border-radius: 2px;
+  transform: translateX(-100vw);
+  animation: mt-streak-cross 1s linear infinite;
+  will-change: transform, opacity;
+}
+.mt-transition[data-phase="reveal"] .mt-streak-field i { animation-duration: .58s; }
+.mt-transition[data-active="true"] .mt-band-grid { animation: mt-grid-drift 26s linear infinite, mt-grid-breathe 4.4s ease-in-out infinite alternate; }
+.mt-logo-anchor {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.mt-transition-logo {
+  width: clamp(104px, 13vw, 164px);
+  height: auto;
+  max-height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--ds-color-accent) 38%, transparent));
+  transform-origin: center;
+  will-change: transform, opacity, filter;
+}
+.mt-transition[data-logo-pulsing="true"] .mt-logo-pulse { animation: mt-logo-pulse 2.2s ease-in-out infinite; }
+.mt-dash-ring {
+  position: fixed;
+  z-index: 5;
+  left: 50%;
+  top: calc(50% - 45px);
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border: 2px dashed var(--ds-color-foreground);
+  border-radius: 50%;
+  opacity: .9;
+}
+.mt-transition[data-active="true"] .mt-dash-ring { animation: mt-ring-turn 7s linear infinite; }
+.mt-progress-track {
+  position: fixed;
+  z-index: 6;
+  top: calc(50% + 51px);
+  left: 50%;
+  width: min(240px, calc(100vw - 48px));
+  height: 3px;
+  overflow: visible;
+  transform: translateX(-50%);
+  background: rgb(242 242 240 / 18%);
+}
+.mt-progress-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  background: var(--ds-color-accent);
+  box-shadow: 2px 0 7px rgb(229 32 46 / 42%);
+  will-change: transform;
+}
+.mt-progress-fill::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ds-color-foreground);
+  box-shadow: 0 0 7px var(--ds-color-foreground);
+}
+.mt-transition[data-reduced="true"] .mt-shutter,
+.mt-transition[data-reduced="true"] .mt-center-band { display: none; }
+.mt-reduced-screen {
+  position: absolute;
+  inset: 0;
+  background: var(--ds-color-background);
+  opacity: 0;
+  will-change: opacity;
+}
+.mt-reduced-progress {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(240px, calc(100vw - 48px));
+  height: 3px;
+  transform: translate(-50%, -50%);
+  background: rgb(242 242 240 / 18%);
+}
+@keyframes mt-grid-drift { from { background-position: 0 0; } to { background-position: -540px 0; } }
+@keyframes mt-grid-breathe { from { opacity: .055; } to { opacity: .09; } }
+@keyframes mt-hazard-forward { from { background-position: 0 0; } to { background-position: 40px 0; } }
+@keyframes mt-streak-cross { from { transform: translateX(-100vw); } to { transform: translateX(100vw); } }
+@keyframes mt-logo-pulse {
+  0%, 100% { transform: scale(.98); filter: drop-shadow(0 0 4px rgb(229 32 46 / 24%)); }
+  50% { transform: scale(1.03); filter: drop-shadow(0 0 8px rgb(229 32 46 / 38%)); }
+}
+@keyframes mt-ring-turn { to { transform: rotate(360deg); } }
+@keyframes mt-panel-breathe { from { opacity: .09; } to { opacity: .16; } }
+@keyframes mt-checker-to-center-top {
+  from { background-position: 0 -24px; }
+  to { background-position: 0 0; }
+}
+@keyframes mt-checker-to-center-bottom {
+  from { background-position: 0 24px; }
+  to { background-position: 0 0; }
+}
+@keyframes mt-band-glow { from { opacity: .36; } to { opacity: .78; } }
+@media (max-width: 600px) {
+  .mt-center-band { height: 184px; margin-top: -92px; }
+  .mt-hazard { height: 4px; }
+  .mt-transition-logo { width: 112px; }
+  .mt-dash-ring { top: calc(50% - 41px); width: 16px; height: 16px; margin-left: -8px; }
+  .mt-progress-track { top: calc(50% + 49px); }
+}
+@media (max-width: 600px) and (max-height: 480px) {
+  .mt-center-band { height: 136px; margin-top: -68px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mt-transition[data-reduced="true"] .mt-band-grid,
+  .mt-transition[data-reduced="true"] .mt-streak-field,
+  .mt-transition[data-reduced="true"] .mt-dash-ring,
+  .mt-transition[data-reduced="true"] .mt-logo-pulse { animation: none; }
+}
 
 /* ---- Server-rendering addition (not needed in the Vite build, which rendered client-side only) ----
    Elements animated on load / on scroll start hidden *before first paint* so the server HTML doesn't flash
